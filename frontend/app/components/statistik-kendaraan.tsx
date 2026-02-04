@@ -9,49 +9,65 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-export default function StatistikKendaraan() {
-  const [periode, setPeriode] = useState<"harian" | "mingguan" | "bulanan">(
-    "harian",
-  );
+type Periode = "harian" | "mingguan" | "bulanan";
 
-  const dataPeriode = {
-    harian: {
-      labels: [
-        "06.00",
-        "07.00",
-        "08.00",
-        "09.00",
-        "10.00",
-        "11.00",
-        "12.00",
-        "13.00",
-        "14.00",
-        "15.00",
-        "16.00",
-        "17.00",
-      ],
-      data: [12, 25, 40, 55, 48, 50, 45, 38, 42, 36, 28, 20],
-    },
-    mingguan: {
-      labels: ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"],
-      data: [720, 680, 750, 800, 770],
-    },
-    bulanan: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "Mei"],
-      data: [2800, 3000, 3200, 3500, 3700],
-    },
-  };
+/* 🔑 TAMBAH PROP REFRESH */
+type StatistikKendaraanProps = {
+  refreshKey?: number;
+};
+
+export default function StatistikKendaraan({
+  refreshKey = 0,
+}: StatistikKendaraanProps) {
+  const [periode, setPeriode] = useState<Periode>("harian");
+  const [labels, setLabels] = useState<string[]>([]);
+  const [values, setValues] = useState<number[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  /* ================= FETCH DATA ================= */
+  useEffect(() => {
+    const fetchStatistik = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await fetch(`/api/statistik/kendaraan?periode=${periode}`, {
+          cache: "no-store",
+        });
+
+        const result = await res.json();
+
+        if (!res.ok || !result.success) {
+          throw new Error(result.message || "Gagal mengambil data statistik");
+        }
+
+        if (!Array.isArray(result.labels) || !Array.isArray(result.data)) {
+          throw new Error("Format data statistik tidak valid");
+        }
+
+        setLabels(result.labels);
+        setValues(result.data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStatistik();
+  }, [periode, refreshKey]); // 🔥 INI KUNCI AUTO REFRESH
 
   const chartData = {
-    labels: dataPeriode[periode].labels,
+    labels,
     datasets: [
       {
         label: "Jumlah Kendaraan",
-        data: dataPeriode[periode].data,
+        data: values,
         backgroundColor: "#1F3A93",
         borderRadius: 6,
       },
@@ -66,9 +82,7 @@ export default function StatistikKendaraan() {
 
         <select
           value={periode}
-          onChange={(e) =>
-            setPeriode(e.target.value as "harian" | "mingguan" | "bulanan")
-          }
+          onChange={(e) => setPeriode(e.target.value as Periode)}
           className="rounded border px-2 py-1 text-xs"
         >
           <option value="harian">Harian (Per Jam)</option>
@@ -77,43 +91,42 @@ export default function StatistikKendaraan() {
         </select>
       </div>
 
-      {/* CHART */}
+      {/* CONTENT */}
       <div className="h-[320px]">
-        <Bar
-          data={chartData}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (context) => `${context.parsed.y} kendaraan`,
+        {loading && (
+          <p className="text-center text-xs text-gray-500">
+            Memuat data statistik...
+          </p>
+        )}
+
+        {error && <p className="text-center text-xs text-red-500">{error}</p>}
+
+        {!loading && !error && labels.length > 0 && (
+          <Bar
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (context) => `${context.parsed.y} kendaraan`,
+                  },
                 },
               },
-            },
-            scales: {
-              x: {
-                title: {
-                  display: true,
-                  text:
-                    periode === "harian"
-                      ? "Waktu (Jam)"
-                      : periode === "mingguan"
-                        ? "Hari"
-                        : "Bulan",
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  title: {
+                    display: true,
+                    text: "Jumlah Kendaraan",
+                  },
                 },
               },
-              y: {
-                beginAtZero: true,
-                title: {
-                  display: true,
-                  text: "Jumlah Kendaraan",
-                },
-              },
-            },
-          }}
-        />
+            }}
+          />
+        )}
       </div>
     </div>
   );

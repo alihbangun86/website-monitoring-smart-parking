@@ -5,6 +5,9 @@
 show databases;
 
 CREATE DATABASE IF NOT EXISTS parkir_db;
+
+drop database if exists parkir_db;
+
 USE parkir_db;
 
 -- =========================
@@ -36,7 +39,7 @@ CREATE TABLE admin (
 CREATE TABLE kendaraan (
     id_kendaraan INT AUTO_INCREMENT PRIMARY KEY,
     npm VARCHAR(50) NOT NULL,
-    plat_nomor VARCHAR(10) NOT NULL,
+    plat_nomor VARCHAR(20) NOT NULL,
     jenis_kendaraan BOOLEAN,
     stnk VARCHAR(255),
     CONSTRAINT fk_kendaraan_pengguna
@@ -65,7 +68,7 @@ CREATE TABLE rfid (
 -- =========================
 CREATE TABLE slot_parkir (
     id_slot INT AUTO_INCREMENT PRIMARY KEY,
-    jumlah VARCHAR(20),
+    jumlah INT,
     id_admin INT,
     CONSTRAINT fk_slot_admin
         FOREIGN KEY (id_admin)
@@ -93,7 +96,7 @@ CREATE TABLE log_parkir (
     id_kendaraan INT NOT NULL,
     waktu_masuk DATETIME NOT NULL,
     waktu_keluar DATETIME,
-    status_parkir VARCHAR(10),
+    status_parkir ENUM('MASUK','KELUAR') NOT NULL,
     id_kuota INT,
     CONSTRAINT fk_log_kendaraan
         FOREIGN KEY (id_kendaraan)
@@ -102,3 +105,4 @@ CREATE TABLE log_parkir (
         FOREIGN KEY (id_kuota)
         REFERENCES kuota_parkir(id_kuota)
 );
+

@@ -4,43 +4,99 @@ const cors = require("cors");
 
 const { connectToDatabase } = require("./config/database");
 
+// ================= ROUTES =================
 const penggunaRoutes = require("./routes/penggunaRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const statistikRoutes = require("./routes/statistikRoutes");
+const parkirRoutes = require("./routes/parkirRoutes");
+const statcardRoutes = require("./routes/statcardRoutes"); // ✅ TAMBAHAN PENTING
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+/**
+ * ================= BASIC APP CONFIG =================
+ */
+app.disable("x-powered-by");
 
-// CEK DB
+/**
+ * ================= MIDDLEWARE =================
+ */
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Next.js
+      "http://127.0.0.1:3000",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/**
+ * ================= DATABASE =================
+ */
 connectToDatabase();
 
-// HEALTH CHECK
+/**
+ * ================= HEALTH CHECK =================
+ */
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
+  return res.status(200).json({
+    status: "success",
     message: "Server & Database aktif",
+    timestamp: new Date(),
   });
 });
 
-// ================= ROUTES =================
+/**
+ * ================= ROUTES =================
+ */
 
-// MAHASISWA
+// MAHASISWA (login, register, profil, riwayat)
 app.use("/api", penggunaRoutes);
-// hasil:
-// POST /api/login
-// POST /api/register
 
-// ADMIN  🔥 INI KUNCI
+// ADMIN (login, verifikasi, RFID, dashboard, tabel parkir)
 app.use("/api/admin", adminRoutes);
-// hasil:
-// POST /api/admin/login
-// POST /api/admin/rfid
-// dst
 
-// ==========================================
+// PARKIR (masuk & keluar kendaraan)
+app.use("/api/parkir", parkirRoutes);
 
+// STATISTIK (grafik dashboard)
+app.use("/api/statistik", statistikRoutes);
+
+// STATCARD (ringkasan dashboard) ✅ INI YANG TADI KURANG
+app.use("/api/statcard", statcardRoutes);
+
+/**
+ * ================= 404 HANDLER =================
+ */
+app.use((req, res) => {
+  return res.status(404).json({
+    status: "error",
+    message: "Endpoint tidak ditemukan",
+    path: req.originalUrl,
+  });
+});
+
+/**
+ * ================= GLOBAL ERROR HANDLER =================
+ */
+app.use((err, req, res, next) => {
+  console.error("🔥 Server Error:", err);
+
+  return res.status(err.status || 500).json({
+    status: "error",
+    message: err.message || "Internal server error",
+  });
+});
+
+/**
+ * ================= SERVER =================
+ */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server aktif di port ${PORT}`);
+  console.log(`🚀 Server aktif di http://localhost:${PORT}`);
 });

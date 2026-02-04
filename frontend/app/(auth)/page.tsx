@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [identifier, setIdentifier] = useState(""); // NPM atau Nama Admin
+  const [identifier, setIdentifier] = useState(""); // NPM / Nama Admin
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,19 +16,20 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (!identifier || !password) {
-      alert("NPM/Nama dan kata sandi wajib diisi");
+      alert("NPM / Nama Admin dan kata sandi wajib diisi");
       return;
     }
 
     setLoading(true);
 
     try {
-      // 🔍 Tentukan role dari input
+      // 🔍 Tentukan role
       const isMahasiswa = /^\d+$/.test(identifier);
 
+      // ✅ Endpoint backend Express
       const endpoint = isMahasiswa
-        ? "/api/auth/login"
-        : "/api/auth/admin/login";
+        ? "http://localhost:5000/api/login"
+        : "http://localhost:5000/api/admin/login";
 
       const payload = isMahasiswa
         ? { npm: identifier, password }
@@ -49,13 +50,18 @@ export default function LoginPage() {
         return;
       }
 
-      // 🔀 Redirect
-      if (!isMahasiswa) {
-        router.push("/admin");
-      } else {
+      /* ================== 🔑 PENTING ================== */
+      if (isMahasiswa) {
+        // ✅ SIMPAN NPM UNTUK DIGUNAKAN HALAMAN LAIN
+        localStorage.setItem("npm", data.data.npm);
+
         router.push("/mahasiswa");
+      } else {
+        router.push("/admin");
       }
+      /* ================================================= */
     } catch (error) {
+      console.error("Login Error:", error);
       alert("Gagal terhubung ke server");
     } finally {
       setLoading(false);

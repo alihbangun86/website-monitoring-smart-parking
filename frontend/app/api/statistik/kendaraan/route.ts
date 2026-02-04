@@ -1,23 +1,49 @@
 import { NextResponse } from "next/server";
 
 /**
- * GET /api/statistik/kendaraan
- * Statistik kendaraan (mock)
+ * GET /api/statistik/kendaraan?periode=harian|mingguan|bulanan
+ * Proxy ke Backend Express (DATA ASLI DARI DATABASE)
  */
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    data: {
-      total_kendaraan_hari_ini: 87,
-      kendaraan_sedang_parkir: 40,
-      kendaraan_keluar: 47,
-      kendaraan_masuk_per_jam: [
-        { jam: "08:00", jumlah: 10 },
-        { jam: "09:00", jumlah: 18 },
-        { jam: "10:00", jumlah: 25 },
-        { jam: "11:00", jumlah: 20 },
-        { jam: "12:00", jumlah: 14 },
-      ],
-    },
-  });
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const periode = searchParams.get("periode");
+
+    // ✅ VALIDASI
+    if (!periode || !["harian", "mingguan", "bulanan"].includes(periode)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Periode tidak valid",
+        },
+        { status: 400 },
+      );
+    }
+
+    // ✅ FETCH KE BACKEND EXPRESS (AMBIL DATA DB)
+    const res = await fetch(
+      `http://localhost:5000/api/statistik/kendaraan?periode=${periode}`,
+      {
+        method: "GET",
+        cache: "no-store", // WAJIB: biar data selalu update
+      },
+    );
+
+    const data = await res.json();
+
+    // ✅ TERUSKAN RESPONSE APA ADANYA
+    return NextResponse.json(data, {
+      status: res.status,
+    });
+  } catch (error) {
+    console.error("Statistik API Error:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Gagal mengambil statistik kendaraan",
+      },
+      { status: 500 },
+    );
+  }
 }

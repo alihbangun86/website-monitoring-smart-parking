@@ -1,9 +1,9 @@
 const { query } = require("../config/database");
 
-/**
- * KF-01: Registrasi Pengguna
- * KF-04: Data Kendaraan
- */
+/* =====================================================
+ * KF-01 : REGISTRASI PENGGUNA + KENDARAAN
+ * (PASSWORD PLAIN - SESUAI PERMINTAAN)
+ * ===================================================== */
 const registerPengguna = async (req, res) => {
   try {
     const {
@@ -18,7 +18,6 @@ const registerPengguna = async (req, res) => {
       stnk,
     } = req.body;
 
-    // Validasi input
     if (
       !npm ||
       !nama ||
@@ -30,11 +29,11 @@ const registerPengguna = async (req, res) => {
     ) {
       return res.status(400).json({
         status: "error",
-        message: "Data akun dan data kendaraan wajib diisi",
+        message: "Data akun dan kendaraan wajib diisi",
       });
     }
 
-    // Cek NPM atau email sudah terdaftar
+    // Cek duplikasi akun
     const existing = await query(
       "SELECT npm FROM pengguna WHERE npm = ? OR email = ?",
       [npm, email],
@@ -54,7 +53,16 @@ const registerPengguna = async (req, res) => {
       `INSERT INTO pengguna
        (npm, nama, email, angkatan, foto, password, status_akun, tanggal_daftar)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [npm, nama, email, angkatan, foto || null, password, 0, tanggal_daftar],
+      [
+        npm,
+        nama,
+        email,
+        angkatan,
+        foto || null,
+        password, // ⚠️ plain password
+        1, // aktif (atau 0 jika pakai verifikasi admin)
+        tanggal_daftar,
+      ],
     );
 
     // Insert kendaraan
@@ -67,7 +75,7 @@ const registerPengguna = async (req, res) => {
 
     return res.status(201).json({
       status: "success",
-      message: "Registrasi berhasil, menunggu verifikasi admin",
+      message: "Registrasi berhasil",
     });
   } catch (error) {
     console.error("registerPengguna error:", error);
@@ -78,14 +86,13 @@ const registerPengguna = async (req, res) => {
   }
 };
 
-/**
- * KF-02: Login Pengguna (NPM + Password)
- */
+/* =====================================================
+ * KF-02 : LOGIN PENGGUNA
+ * ===================================================== */
 const loginPengguna = async (req, res) => {
   try {
     const { npm, password } = req.body;
 
-    // Validasi input
     if (!npm || !password) {
       return res.status(400).json({
         status: "error",
@@ -93,9 +100,8 @@ const loginPengguna = async (req, res) => {
       });
     }
 
-    // Cari pengguna berdasarkan NPM
     const rows = await query(
-      `SELECT npm, nama, email, angkatan, foto, status_akun, password
+      `SELECT npm, nama, email, angkatan, foto, password, status_akun
        FROM pengguna
        WHERE npm = ?
        LIMIT 1`,
@@ -111,7 +117,6 @@ const loginPengguna = async (req, res) => {
 
     const user = rows[0];
 
-    // Cek status akun
     if (!user.status_akun) {
       return res.status(403).json({
         status: "error",
@@ -119,8 +124,7 @@ const loginPengguna = async (req, res) => {
       });
     }
 
-    // Validasi password (plaintext)
-    if (user.password !== password) {
+    if (password !== user.password) {
       return res.status(401).json({
         status: "error",
         message: "NPM atau password salah",
@@ -147,9 +151,9 @@ const loginPengguna = async (req, res) => {
   }
 };
 
-/**
- * KF-13: Edit Profil Pengguna
- */
+/* =====================================================
+ * KF-13 : EDIT PROFIL PENGGUNA
+ * ===================================================== */
 const editProfilPengguna = async (req, res) => {
   try {
     const {
@@ -170,7 +174,6 @@ const editProfilPengguna = async (req, res) => {
       });
     }
 
-    // Update pengguna
     await query(
       `UPDATE pengguna
        SET nama = ?, email = ?, angkatan = ?, foto = ?
@@ -178,7 +181,6 @@ const editProfilPengguna = async (req, res) => {
       [nama, email, angkatan, foto || null, npm],
     );
 
-    // Update kendaraan
     await query(
       `UPDATE kendaraan
        SET plat_nomor = ?, jenis_kendaraan = ?, stnk = ?
@@ -188,7 +190,7 @@ const editProfilPengguna = async (req, res) => {
 
     return res.status(200).json({
       status: "success",
-      message: "Profil pengguna berhasil diperbarui",
+      message: "Profil berhasil diperbarui",
     });
   } catch (error) {
     console.error("editProfilPengguna error:", error);
@@ -199,9 +201,9 @@ const editProfilPengguna = async (req, res) => {
   }
 };
 
-/**
- * KF-14: Riwayat Parkir Pengguna
- */
+/* =====================================================
+ * KF-14 : RIWAYAT PARKIR PENGGUNA (FIX TOTAL)
+ * ===================================================== */
 const riwayatParkirPengguna = async (req, res) => {
   try {
     const { npm } = req.params;
@@ -213,15 +215,17 @@ const riwayatParkirPengguna = async (req, res) => {
       });
     }
 
+    // 🔥 QUERY FINAL YANG BENAR
     const rows = await query(
       `SELECT
          lp.id_log,
          k.plat_nomor,
          lp.waktu_masuk,
          lp.waktu_keluar,
-         lp.status_parkir
+         COALESCE(lp.status_parkir, 'MASUK') AS status_parkir
        FROM log_parkir lp
-       JOIN kendaraan k ON lp.id_kendaraan = k.id_kendaraan
+       INNER JOIN kendaraan k
+         ON lp.id_kendaraan = k.id_kendaraan
        WHERE k.npm = ?
        ORDER BY lp.waktu_masuk DESC`,
       [npm],
@@ -241,6 +245,9 @@ const riwayatParkirPengguna = async (req, res) => {
   }
 };
 
+/* =====================================================
+ * EXPORT
+ * ===================================================== */
 module.exports = {
   registerPengguna,
   loginPengguna,

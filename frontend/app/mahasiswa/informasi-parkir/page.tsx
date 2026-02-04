@@ -1,124 +1,180 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import StatCard from "@/app/components/StatCard";
 
 /* ===== TIPE DATA RIWAYAT ===== */
 type RiwayatMasuk = {
   tanggal: string;
   waktuMasuk: string;
-  slot: string;
+  waktuKeluar?: string;
   status: "Masuk" | "Keluar";
 };
 
-/* ===== DUMMY RIWAYAT USER LOGIN ===== */
-const riwayatUser: RiwayatMasuk[] = [
-  {
-    tanggal: "17/01/2026",
-    waktuMasuk: "08:10",
-    slot: "A01",
-    status: "Masuk",
-  },
-  {
-    tanggal: "16/01/2026",
-    waktuMasuk: "09:00",
-    slot: "B03",
-    status: "Keluar",
-  },
-];
+/* ===== TIPE DATA STATCARD ===== */
+type StatCardData = {
+  terisi: number;
+  tersedia: number;
+  kesempatan_parkir: number;
+};
 
 export default function InformasiParkirPage() {
   const [loading, setLoading] = useState(false);
+  const [loadingRiwayat, setLoadingRiwayat] = useState(true);
 
-  const handleRefresh = () => {
-    setLoading(true);
+  const [statcard, setStatcard] = useState<StatCardData>({
+    terisi: 0,
+    tersedia: 0,
+    kesempatan_parkir: 0,
+  });
 
-    // ⏳ nanti diganti fetch realtime
-    setTimeout(() => {
-      setLoading(false);
-      alert("Data parkir diperbarui");
-    }, 1000);
+  const [riwayat, setRiwayat] = useState<RiwayatMasuk[]>([]);
+
+  /* ================= STATCARD ================= */
+  const fetchStatCard = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/statcard/parkir", {
+        cache: "no-store",
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setStatcard(result.data);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil statcard:", error);
+    }
   };
+
+  /* ================= RIWAYAT PARKIR ================= */
+  const fetchRiwayatParkir = async () => {
+    try {
+      const npm = localStorage.getItem("npm");
+
+      if (!npm) {
+        setRiwayat([]);
+        return;
+      }
+
+      const res = await fetch(
+        `http://localhost:5000/api/parkir/riwayat/${npm}`,
+        { cache: "no-store" },
+      );
+
+      const result = await res.json();
+
+      if (res.ok && result.status === "success") {
+        const mapped: RiwayatMasuk[] = result.data.map((item: any) => ({
+          tanggal: new Date(item.waktu_masuk).toLocaleDateString("id-ID"),
+          waktuMasuk: new Date(item.waktu_masuk).toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          waktuKeluar: item.waktu_keluar
+            ? new Date(item.waktu_keluar).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : undefined,
+          status: item.status_parkir === "MASUK" ? "Masuk" : "Keluar",
+        }));
+
+        setRiwayat(mapped);
+      } else {
+        setRiwayat([]);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil riwayat parkir:", error);
+      setRiwayat([]);
+    } finally {
+      setLoadingRiwayat(false);
+    }
+  };
+
+  /* ================= EFFECT ================= */
+  useEffect(() => {
+    fetchStatCard();
+    fetchRiwayatParkir();
+  }, []);
+
+  /* ================= REFRESH ================= */
+  const handleRefresh = async () => {
+    setLoading(true);
+    await Promise.all([fetchStatCard(), fetchRiwayatParkir()]);
+    setLoading(false);
+  };
+
+  const statusParkir = statcard.tersedia === 0 ? "Penuh" : "Tersedia";
 
   return (
     <div className="space-y-8">
-      {/* ================= STATUS PARKIR ================= */}
+      {/* STATUS PARKIR */}
       <div className="flex items-center gap-3 text-sm">
         <span className="font-semibold text-gray-700">Status Parkir:</span>
-        <span className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white">
-          Penuh
+        <span
+          className={`rounded px-3 py-1 text-xs font-semibold text-white ${
+            statusParkir === "Penuh" ? "bg-red-600" : "bg-green-600"
+          }`}
+        >
+          {statusParkir}
         </span>
       </div>
 
-      {/* ================= KETERSEDIAAN PARKIR ================= */}
+      {/* STATCARD */}
       <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-800">
             Ketersediaan Parkir
           </h3>
-
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="rounded bg-[#1F3A93] px-4 py-1.5 text-xs font-semibold text-white
-              transition hover:bg-[#162C6E] disabled:opacity-60"
+            className="rounded bg-[#1F3A93] px-4 py-1.5 text-xs font-semibold text-white"
           >
             {loading ? "Memperbarui..." : "Perbarui Data"}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Slot" value="200 Slot" />
-          <StatCard title="Terisi" value="180 Kendaraan" />
-          <StatCard title="Tersedia" value="20 Slot" />
-          <StatCard title="Kesempatan Parkir" value="10%" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard title="Terisi" value={statcard.terisi} unit="Kendaraan" />
+          <StatCard title="Tersedia" value={statcard.tersedia} unit="Slot" />
+          <StatCard
+            title="Kesempatan Parkir"
+            value={statcard.kesempatan_parkir}
+            unit="Slot"
+          />
         </div>
       </section>
 
-      {/* ================= RIWAYAT MASUK KENDARAAN USER ================= */}
-      <section className="rounded-xl border border-gray-300 bg-white p-5 shadow-sm">
+      {/* RIWAYAT PARKIR */}
+      <section className="rounded-xl border bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold text-gray-800">
-          Riwayat Masuk Kendaraan Anda
+          Riwayat Parkir Anda
         </h3>
 
-        {riwayatUser.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs">
-              <thead className="bg-gray-100 text-gray-700">
-                <tr>
-                  <Th>Tanggal</Th>
-                  <Th>Waktu Masuk</Th>
-                  <Th>Waktu Keluar</Th>
-                  <Th>Status</Th>
+        {loadingRiwayat ? (
+          <p className="text-xs text-gray-500">Memuat riwayat...</p>
+        ) : riwayat.length > 0 ? (
+          <table className="w-full text-xs border-collapse">
+            <thead className="bg-gray-100">
+              <tr>
+                <Th>Tanggal</Th>
+                <Th>Waktu Masuk</Th>
+                <Th>Waktu Keluar</Th>
+                <Th>Status</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {riwayat.map((item, index) => (
+                <tr key={index} className="border-t text-center">
+                  <Td>{item.tanggal}</Td>
+                  <Td>{item.waktuMasuk}</Td>
+                  <Td>{item.waktuKeluar ?? "-"}</Td>
+                  <Td>{item.status}</Td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {riwayatUser.map((item, index) => (
-                  <tr
-                    key={index}
-                    className="border-t text-center transition hover:bg-[#F4F6F8]"
-                  >
-                    <Td>{item.tanggal}</Td>
-                    <Td>{item.waktuMasuk}</Td>
-                    <Td>{item.waktuKeluar}</Td>
-                    <Td>
-                      <span
-                        className={`rounded-full px-3 py-1 text-[11px] font-semibold
-                          ${
-                            item.status === "Masuk"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-200 text-gray-600"
-                          }`}
-                      >
-                        {item.status}
-                      </span>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         ) : (
           <p className="text-xs text-gray-500">Belum ada riwayat parkir</p>
         )}
@@ -127,7 +183,7 @@ export default function InformasiParkirPage() {
   );
 }
 
-/* ================= REUSABLE TABLE CELL ================= */
+/* ===== TABLE CELL ===== */
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="px-3 py-2 text-xs font-semibold text-gray-700">
