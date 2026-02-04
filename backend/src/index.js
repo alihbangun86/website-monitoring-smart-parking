@@ -8,8 +8,8 @@ const { connectToDatabase } = require("./config/database");
 const penggunaRoutes = require("./routes/penggunaRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const statistikRoutes = require("./routes/statistikRoutes");
-const statcardRoutes = require("./routes/statcardRoutes");
 const parkirRoutes = require("./routes/parkirRoutes");
+const statcardRoutes = require("./routes/statcardRoutes"); // ✅ TAMBAHAN PENTING
 
 const app = express();
 
@@ -21,8 +21,6 @@ app.disable("x-powered-by");
 /**
  * ================= MIDDLEWARE =================
  */
-
-// ✅ CORS (aman untuk Next.js)
 app.use(
   cors({
     origin: [
@@ -46,7 +44,7 @@ connectToDatabase();
  * ================= HEALTH CHECK =================
  */
 app.get("/api/health", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     status: "success",
     message: "Server & Database aktif",
     timestamp: new Date(),
@@ -57,28 +55,26 @@ app.get("/api/health", (req, res) => {
  * ================= ROUTES =================
  */
 
-// MAHASISWA (LOGIN, REGISTER, PROFIL, RIWAYAT)
+// MAHASISWA (login, register, profil, riwayat)
 app.use("/api", penggunaRoutes);
 
-// ADMIN
+// ADMIN (login, verifikasi, RFID, dashboard, tabel parkir)
 app.use("/api/admin", adminRoutes);
 
-// PARKIR (MASUK & KELUAR)
+// PARKIR (masuk & keluar kendaraan)
 app.use("/api/parkir", parkirRoutes);
-// POST /api/parkir/masuk
-// POST /api/parkir/keluar
 
-// STATCARD (DASHBOARD)
-app.use("/api/statcard", statcardRoutes);
-
-// STATISTIK (GRAFIK)
+// STATISTIK (grafik dashboard)
 app.use("/api/statistik", statistikRoutes);
+
+// STATCARD (ringkasan dashboard) ✅ INI YANG TADI KURANG
+app.use("/api/statcard", statcardRoutes);
 
 /**
  * ================= 404 HANDLER =================
  */
 app.use((req, res) => {
-  res.status(404).json({
+  return res.status(404).json({
     status: "error",
     message: "Endpoint tidak ditemukan",
     path: req.originalUrl,
@@ -91,7 +87,7 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("🔥 Server Error:", err);
 
-  res.status(err.status || 500).json({
+  return res.status(err.status || 500).json({
     status: "error",
     message: err.message || "Internal server error",
   });

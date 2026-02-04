@@ -3,8 +3,25 @@
 import { useState } from "react";
 
 export default function LaporanExport() {
-  const [format, setFormat] = useState("pdf");
+  const [format, setFormat] = useState<"pdf" | "csv" | "excel">("pdf");
   const [periode, setPeriode] = useState("harian");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  const handleExport = () => {
+    if (format !== "pdf") {
+      alert("Saat ini hanya PDF yang tersedia");
+      return;
+    }
+
+    let url = `/api/admin/export/pdf?periode=${periode}`;
+
+    if (from && to) {
+      url += `&from=${from}&to=${to}`;
+    }
+
+    window.open(url, "_blank");
+  };
 
   return (
     <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-5">
@@ -31,6 +48,8 @@ export default function LaporanExport() {
           <label className="text-xs font-medium text-gray-600">Dari</label>
           <input
             type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
           />
         </div>
@@ -39,6 +58,8 @@ export default function LaporanExport() {
           <label className="text-xs font-medium text-gray-600">Sampai</label>
           <input
             type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
             className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
           />
         </div>
@@ -61,7 +82,7 @@ export default function LaporanExport() {
                 name="format"
                 value={item}
                 checked={format === item}
-                onChange={() => setFormat(item)}
+                onChange={() => setFormat(item as any)}
                 className="accent-[#1F3A93]"
               />
               {item.toUpperCase()}
@@ -73,6 +94,7 @@ export default function LaporanExport() {
       {/* ===== BUTTON ===== */}
       <button
         type="button"
+        onClick={handleExport}
         className="rounded-md bg-[#1F3A93] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#162C6E]"
       >
         Export Laporan

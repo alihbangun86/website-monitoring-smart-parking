@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/parkir/:id
- * Detail parkir berdasarkan ID (mock)
+ * Detail parkir berdasarkan ID
  */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   return NextResponse.json({
     success: true,
     data: {
-      id: params.id,
+      id,
       rfid: "RFID001",
       nama: "Mahasiswa A",
       plat_nomor: "BE 1234 AB",
@@ -23,30 +25,33 @@ export async function GET(
 
 /**
  * PUT /api/parkir/:id
- * Kendaraan keluar parkir (mock)
+ * Kendaraan keluar parkir
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
+
   try {
     return NextResponse.json({
       success: true,
       message: "Kendaraan berhasil keluar parkir",
       data: {
-        id: params.id,
+        id,
         waktu_keluar: new Date().toISOString(),
         status: "keluar",
       },
     });
   } catch (error) {
     console.error("PARKIR KELUAR ERROR:", error);
+
     return NextResponse.json(
       {
         success: false,
         message: "Terjadi kesalahan server",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

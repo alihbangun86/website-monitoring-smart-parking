@@ -6,14 +6,15 @@ import { NextResponse } from "next/server";
  */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   return NextResponse.json({
     success: true,
     data: {
-      id: params.id,
+      id: id,
       nama: "Mahasiswa A",
-      npm: params.id,
+      npm: id,
       email: "mahasiswa@email.com",
       rfid: "RFID001",
       parking_attempt: 10,
@@ -28,8 +29,9 @@ export async function GET(
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   try {
     const body = await req.json();
     const { nama, email, parking_attempt, status } = body;
@@ -38,7 +40,7 @@ export async function PUT(
       success: true,
       message: "Data pengguna berhasil diperbarui",
       data: {
-        id: params.id,
+        id: id,
         nama: nama ?? "Mahasiswa A",
         email: email ?? "mahasiswa@email.com",
         parking_attempt: parking_attempt ?? 10,
@@ -63,11 +65,12 @@ export async function PUT(
  */
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params;
   return NextResponse.json({
     success: true,
     message: "Pengguna berhasil dihapus",
-    userId: params.id,
+    userId: id,
   });
 }

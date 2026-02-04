@@ -2,32 +2,38 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/statcard/parkir
- * Proxy ke Backend Express
+ * Proxy ke Backend Express -> /api/statistik/parkir
  */
 export async function GET() {
   try {
     const BACKEND_URL =
       process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
-    const res = await fetch(`${BACKEND_URL}/api/statcard/parkir`, {
+    // 🔗 SESUAI DENGAN index.js BACKEND
+    const res = await fetch(`http://localhost:5000/api/statistik/parkir`, {
       method: "GET",
-      cache: "no-store", // selalu ambil data terbaru
+      cache: "no-store", // data real-time
     });
 
-    // kalau backend error
+    // ❌ Backend error
     if (!res.ok) {
-      const errorData = await res.json();
+      let message = "Backend error";
+      try {
+        const errorData = await res.json();
+        message = errorData.message || message;
+      } catch {}
+
       return NextResponse.json(
         {
           success: false,
-          message: errorData.message || "Backend error",
+          message,
         },
         { status: res.status },
       );
     }
 
+    // ✅ Sukses
     const data = await res.json();
-
     return NextResponse.json(data);
   } catch (error) {
     console.error("❌ StatCard API Error:", error);

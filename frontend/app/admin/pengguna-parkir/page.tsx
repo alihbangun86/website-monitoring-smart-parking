@@ -1,6 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import DataPenggunaTable from "@/app/components/DataPenggunaTable";
 
 export default function PenggunaParkirAdminPage() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+
   return (
     <div className="space-y-6">
       {/* ================= SEARCH & FILTER ================= */}
@@ -14,25 +20,32 @@ export default function PenggunaParkirAdminPage() {
           <input
             type="text"
             placeholder="Cari Nama / NPM / No Kendaraan"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="rounded-md border border-gray-300 px-3 py-2 text-xs transition
               focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
           />
 
           {/* FILTER STATUS */}
           <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-md border border-gray-300 px-3 py-2 text-xs transition
               focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
           >
             <option value="">Semua Status</option>
-            <option value="Aktif">Aktif</option>
-            <option value="Menunggu">Menunggu Validasi</option>
-            <option value="Diblokir">Diblokir</option>
+            <option value="aktif">Aktif</option>
+            <option value="menunggu">Menunggu Validasi</option>
+            <option value="diblokir">Diblokir</option>
           </select>
         </div>
       </section>
 
       {/* ================= DATA TABLE ================= */}
-      <DataPenggunaTable />
+      <DataPenggunaTable
+        search={search}
+        statusFilter={statusFilter}
+      />
 
       {/* ================= FOOTER SPACE ================= */}
       <div className="h-10" />

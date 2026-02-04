@@ -24,7 +24,7 @@ export default function MahasiswaHomePage() {
       setLoading(true);
 
       // ✅ LEWAT API NEXT.JS (Bukan langsung backend)
-      const res = await fetch("/api/statcard/parkir", {
+      const res = await fetch("http://localhost:5000/api/statcard/parkir", {
         cache: "no-store",
       });
 
