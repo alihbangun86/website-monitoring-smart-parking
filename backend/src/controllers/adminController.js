@@ -90,18 +90,39 @@ const verifikasiPengguna = async (req, res) => {
       });
     }
 
+    if (!user[0].email || user[0].email.trim() === "") {
+      return res.status(400).json({
+        status: "error",
+        message: "Email pengguna tidak ditemukan di database",
+      });
+    }
+
     // Aktifkan akun
     await query(
       "UPDATE pengguna SET status_akun = 1 WHERE npm = ?",
       [npm]
     );
 
+    console.log("📧 Mencoba kirim email ke:", user[0].email);
+
     // Kirim email notifikasi
-    await sendVerificationEmail(user[0].email);
+    try {
+      await sendVerificationEmail(user[0].email);
+      console.log("✅ Email verifikasi berhasil dikirim");
+    } catch (emailError) {
+      console.error("❌ Error saat kirim email:", emailError.message);
+      
+      return res.status(200).json({
+        status: "success",
+        message: "Akun berhasil diverifikasi, tetapi email gagal dikirim",
+        emailError: emailError.message,
+      });
+    }
 
     return res.status(200).json({
       status: "success",
       message: "Akun berhasil diverifikasi dan email telah dikirim",
+      emailSent: true,
     });
   } catch (err) {
     console.error("verifikasiPengguna:", err);
@@ -220,8 +241,8 @@ const dashboardSummary = async (req, res) => {
  */
 const getDataParkir = async (req, res) => {
   try {
-    const limit = Number(req.query.limit) || 10;
-    const offset = Number(req.query.offset) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
     const search = req.query.search || "";
     const start = req.query.start || "";
     const end = req.query.end || "";

@@ -20,6 +20,37 @@ const {
 // LOGIN ADMIN
 router.post("/login", loginAdmin);
 
+router.post("/test-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email wajib diisi"
+      });
+    }
+
+    console.log("🧪 TEST: Mengirim email ke:", email);
+    
+    const { sendVerificationEmail } = require("../utils/email");
+    await sendVerificationEmail(email);
+    
+    res.json({
+      status: "success",
+      message: "Email test berhasil dikirim",
+      email: email
+    });
+  } catch (error) {
+    console.error("❌ TEST EMAIL GAGAL:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Gagal mengirim email test",
+      error: error.message
+    });
+  }
+});
+
 /**
  * =========================
  * MANAJEMEN PENGGUNA

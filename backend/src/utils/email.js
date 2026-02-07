@@ -21,7 +21,14 @@ console.log("EMAIL:", process.env.EMAIL_USER);
 
 const sendVerificationEmail = async (toEmail) => {
   try {
-    await transporter.sendMail({
+    // Validasi email
+    if (!toEmail || toEmail.trim() === "") {
+      throw new Error("Email penerima tidak valid atau kosong");
+    }
+
+    console.log("🔔 Mengirim email verifikasi ke:", toEmail);
+
+    const info = await transporter.sendMail({
       from: `"Smart Parking" <${process.env.EMAIL_USER}>`,
       to: toEmail,
       subject: "Akun Anda Telah Diverifikasi",
@@ -31,8 +38,14 @@ const sendVerificationEmail = async (toEmail) => {
         <p>Silakan login ke sistem Smart Parking.</p>
       `,
     });
+
+    console.log("✅ Email berhasil dikirim:", info.messageId);
+    console.log("📧 Diterima oleh:", info.accepted);
+    
+    return info;
   } catch (error) {
-    console.error("Gagal mengirim email:", error);
+    console.error("❌ Gagal mengirim email:", error.message);
+    console.error("Detail error:", error);
     throw error;
   }
 };
