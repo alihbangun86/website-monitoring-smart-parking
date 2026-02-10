@@ -190,13 +190,18 @@ const hapusPengguna = async (req, res) => {
 ===================================================== */
 const generateRFID = async (req, res) => {
   try {
-    const { id_kendaraan } = req.body;
+    let { id_kendaraan, kode_rfid } = req.body;
 
     if (!id_kendaraan) {
       return res.status(400).json({
         status: "error",
         message: "ID kendaraan wajib diisi",
       });
+    }
+
+    // Jika kode_rfid tidak dikirim, generate otomatis
+    if (!kode_rfid) {
+      kode_rfid = `RFID-${Date.now()}`;
     }
 
     const kendaraan = await query(
@@ -211,16 +216,42 @@ const generateRFID = async (req, res) => {
       });
     }
 
-    const kode_rfid = `RFID-${Date.now()}`;
-
-    await query(
-      "INSERT INTO rfid (id_kendaraan, kode_rfid, status_rfid) VALUES (?, ?, 1)",
-      [id_kendaraan, kode_rfid]
+    // Cek apakah kode_rfid sudah dipakai kendaraan lain
+    const existingRFID = await query(
+      "SELECT id_kendaraan FROM rfid WHERE kode_rfid = ? AND id_kendaraan != ?",
+      [kode_rfid, id_kendaraan]
     );
 
-    return res.status(201).json({
+    if (existingRFID.length > 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Kode RFID ini sudah digunakan oleh kendaraan lain",
+      });
+    }
+
+    // UPSERT: Cek apakah kendaraan ini sudah punya RFID
+    const currentRFID = await query(
+      "SELECT id_rfid FROM rfid WHERE id_kendaraan = ?",
+      [id_kendaraan]
+    );
+
+    if (currentRFID.length > 0) {
+      // Update
+      await query(
+        "UPDATE rfid SET kode_rfid = ? WHERE id_kendaraan = ?",
+        [kode_rfid, id_kendaraan]
+      );
+    } else {
+      // Insert
+      await query(
+        "INSERT INTO rfid (id_kendaraan, kode_rfid, status_rfid, tanggal_aktif) VALUES (?, ?, 1, NOW())",
+        [id_kendaraan, kode_rfid]
+      );
+    }
+
+    return res.status(200).json({
       status: "success",
-      message: "RFID berhasil dibuat",
+      message: "RFID berhasil diperbarui",
       data: { kode_rfid },
     });
 

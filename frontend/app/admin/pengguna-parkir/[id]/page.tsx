@@ -15,6 +15,8 @@ type Profil = {
   stnk: string | null;
   foto: string | null;
   sisa_kuota?: number;
+  id_kendaraan: number;
+  kode_rfid?: string;
 };
 
 export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const [profil, setProfil] = useState<Profil | null>(null);
   const [loading, setLoading] = useState(true);
   const [editKuota, setEditKuota] = useState<string>("");
+  const [editRfid, setEditRfid] = useState<string>("");
 
   const fetchDetail = async () => {
     try {
@@ -35,10 +38,9 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       const json = await res.json();
       if (res.ok) {
         setProfil(json.data);
-        // Hint: sisa_kuota dihitung dari batas - terpakai di backend.
-        // Kita butuh batas_parkir-nya untuk diedit. 
-        // Namun sisa_kuota cukup sebagai indikator. 
-        // Admin akan memasukkan TOTAL BATAS PARKIR baru.
+        if (json.data.kode_rfid) {
+          setEditRfid(json.data.kode_rfid);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -50,6 +52,35 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     fetchDetail();
   }, [npm]);
+
+  const handleUpdateRfid = async () => {
+    if (!editRfid.trim()) {
+      alert("Masukkan Kode RFID");
+      return;
+    }
+
+    try {
+      // Menggunakan endpoint generate/update RFID yang ada di backend
+      const res = await fetch("/api/admin/rfid/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_kendaraan: profil?.id_kendaraan,
+          kode_rfid: editRfid.trim()
+        }),
+      });
+
+      if (res.ok) {
+        alert("RFID berhasil diperbarui");
+        fetchDetail();
+      } else {
+        const data = await res.json();
+        alert(data.message || "Gagal memperbarui RFID");
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan sistem");
+    }
+  };
 
   const handleUpdateKuota = async () => {
     if (!editKuota || isNaN(Number(editKuota))) {
@@ -170,7 +201,25 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       {/* ================= INFORMASI TEKNIS ================= */}
       <div className="grid grid-cols-1 gap-6 rounded-xl bg-white p-6 shadow-sm sm:grid-cols-3">
         <Info label="Nomor Kendaraan" value={profil.plat_nomor || "-"} />
-        <Info label="Fakultas / Jurusan" value={profil.jurusan} />
+
+        <div className="space-y-2">
+          <Info label="Kode RFID" value={profil.kode_rfid || "Belum Terdaftar"} />
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="text"
+              placeholder="Input RFID"
+              value={editRfid}
+              onChange={(e) => setEditRfid(e.target.value)}
+              className="w-32 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-[#1F3A93]"
+            />
+            <button
+              onClick={handleUpdateRfid}
+              className="rounded bg-[#1F3A93] px-3 py-1 text-[10px] font-bold text-white hover:bg-[#162C6E]"
+            >
+              SET
+            </button>
+          </div>
+        </div>
 
         <div className="space-y-2">
           <Info label="Sisa Kesempatan Parkir" value={`${profil.sisa_kuota ?? 0} Kali`} />

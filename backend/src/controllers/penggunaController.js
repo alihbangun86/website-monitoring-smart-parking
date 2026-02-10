@@ -150,7 +150,8 @@ const getProfilPengguna = async (req, res) => {
 
     const rows = await query(
       `SELECT p.npm, p.nama, p.email, p.jurusan, p.prodi, p.foto, p.status_akun,
-              k.plat_nomor, k.stnk,
+              k.id_kendaraan, k.plat_nomor, k.stnk,
+              r.kode_rfid,
               COALESCE(
                 (SELECT batas_parkir FROM kuota_parkir WHERE npm = p.npm ORDER BY id_kuota DESC LIMIT 1),
                 (SELECT batas_parkir FROM kuota_parkir WHERE npm IS NULL ORDER BY id_kuota DESC LIMIT 1), 
@@ -163,6 +164,7 @@ const getProfilPengguna = async (req, res) => {
               ) AS sisa_kuota
        FROM pengguna p
        LEFT JOIN kendaraan k ON p.npm = k.npm
+       LEFT JOIN rfid r ON k.id_kendaraan = r.id_kendaraan
        WHERE p.npm = ?`,
       [npm]
     );
