@@ -12,7 +12,7 @@ transporter.verify((error) => {
   if (error) {
     console.error("Email transporter error:", error);
   } else {
-    console.log("Email transporter ready");
+    console.log("Email transporter verifikasi ready");
   }
 });
 
@@ -26,7 +26,7 @@ const sendVerificationEmail = async (toEmail) => {
       throw new Error("Email penerima tidak valid atau kosong");
     }
 
-    console.log("🔔 Mengirim email verifikasi ke:", toEmail);
+    console.log("Mengirim email verifikasi ke:", toEmail);
 
     const info = await transporter.sendMail({
       from: `"Smart Parking" <${process.env.EMAIL_USER}>`,

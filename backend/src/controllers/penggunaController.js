@@ -10,6 +10,8 @@ const registerPengguna = async (req, res) => {
       npm,
       nama,
       email,
+      jurusan,
+      prodi,
       angkatan,
       foto,
       password,
@@ -48,24 +50,26 @@ const registerPengguna = async (req, res) => {
 
     const tanggal_daftar = new Date();
 
-    // Insert pengguna
+    // Insert pengguna (DITAMBAH jurusan & prodi)
     await query(
       `INSERT INTO pengguna
-       (npm, nama, email, angkatan, foto, password, status_akun, tanggal_daftar)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (npm, nama, email, jurusan, prodi, angkatan, foto, password, status_akun, tanggal_daftar)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         npm,
         nama,
         email,
+        jurusan || null,
+        prodi || null,
         angkatan,
         foto || null,
-        password, // ⚠️ plain password
-        0, // aktif (atau 0 jika pakai verifikasi admin)
+        password,
+        0,
         tanggal_daftar,
       ],
     );
 
-    // Insert kendaraan
+    // Insert kendaraan (TIDAK DIUBAH)
     await query(
       `INSERT INTO kendaraan
        (npm, plat_nomor, jenis_kendaraan, stnk)
@@ -101,7 +105,7 @@ const loginPengguna = async (req, res) => {
     }
 
     const rows = await query(
-      `SELECT npm, nama, email, angkatan, foto, password, status_akun
+      `SELECT npm, nama, email, jurusan, prodi, angkatan, foto, password, status_akun
        FROM pengguna
        WHERE npm = ?
        LIMIT 1`,
@@ -138,6 +142,8 @@ const loginPengguna = async (req, res) => {
         npm: user.npm,
         nama: user.nama,
         email: user.email,
+        jurusan: user.jurusan,
+        prodi: user.prodi,
         angkatan: user.angkatan,
         foto: user.foto || null,
       },
@@ -176,6 +182,8 @@ const editProfilPengguna = async (req, res) => {
       npm,
       nama,
       email,
+      jurusan,
+      prodi,
       angkatan,
       foto,
       plat_nomor,
@@ -192,9 +200,9 @@ const editProfilPengguna = async (req, res) => {
 
     await query(
       `UPDATE pengguna
-       SET nama = ?, email = ?, angkatan = ?, foto = ?
+       SET nama = ?, email = ?, jurusan = ?, prodi = ?, angkatan = ?, foto = ?
        WHERE npm = ?`,
-      [nama, email, angkatan, foto || null, npm],
+      [nama, email, jurusan || null, prodi || null, angkatan, foto || null, npm],
     );
 
     await query(
@@ -218,7 +226,7 @@ const editProfilPengguna = async (req, res) => {
 };
 
 /* =====================================================
- * KF-14 : RIWAYAT PARKIR PENGGUNA (FIX TOTAL)
+ * KF-14 : RIWAYAT PARKIR PENGGUNA
  * ===================================================== */
 const riwayatParkirPengguna = async (req, res) => {
   try {
@@ -231,7 +239,6 @@ const riwayatParkirPengguna = async (req, res) => {
       });
     }
 
-    // 🔥 QUERY FINAL YANG BENAR
     const rows = await query(
       `SELECT
          lp.id_log,
@@ -261,6 +268,120 @@ const riwayatParkirPengguna = async (req, res) => {
   }
 };
 
+// lupa password
+
+const { sendOtpEmail } = require("../utils/lupapswd");
+
+/* =====================================================
+ * KF-20 : REQUEST OTP RESET PASSWORD
+ * ===================================================== */
+const requestOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email wajib diisi",
+      });
+    }
+
+    // cek email di tabel pengguna
+    const user = await query(
+      "SELECT email FROM pengguna WHERE email = ? LIMIT 1",
+      [email],
+    );
+
+    if (user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Email tidak terdaftar",
+      });
+    }
+
+    // generate OTP 6 digit
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
+
+    // hapus OTP lama (jika ada)
+    await query("DELETE FROM reset_password_otp WHERE email = ?", [email]);
+
+    // simpan OTP baru
+    await query(
+      "INSERT INTO reset_password_otp (email, otp, expired_at) VALUES (?, ?, ?)",
+      [email, otp, expiredAt],
+    );
+
+    // kirim OTP via email (SMTP)
+    await sendOtpEmail(email, otp);
+
+    return res.status(200).json({
+      status: "success",
+      message: "OTP berhasil dikirim ke email",
+    });
+  } catch (error) {
+    console.error("requestOtp error:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal mengirim OTP",
+    });
+  }
+};
+
+/* =====================================================
+ * KF-22 : RESET PASSWORD DENGAN OTP
+ * ===================================================== */
+const resetPasswordOtp = async (req, res) => {
+  try {
+    const { email, otp, password_baru } = req.body;
+
+    if (!email || !otp || !password_baru) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email, OTP, dan password baru wajib diisi",
+      });
+    }
+
+    // validasi OTP
+    const rows = await query(
+      `SELECT * FROM reset_password_otp
+       WHERE email = ?
+       AND otp = ?
+       AND expired_at > NOW()
+       LIMIT 1`,
+      [email, otp],
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        status: "error",
+        message: "OTP tidak valid atau sudah kadaluarsa",
+      });
+    }
+
+    // update password pengguna
+    await query(
+      "UPDATE pengguna SET password = ? WHERE email = ?",
+      [password_baru, email],
+    );
+
+    // hapus OTP setelah dipakai
+    await query("DELETE FROM reset_password_otp WHERE email = ?", [email]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password berhasil direset",
+    });
+  } catch (error) {
+    console.error("resetPasswordOtp error:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal reset password",
+    });
+  }
+};
+
+
 /* =====================================================
  * EXPORT
  * ===================================================== */
@@ -270,4 +391,6 @@ module.exports = {
   editProfilPengguna,
   riwayatParkirPengguna,
   logoutPengguna,
+  requestOtp,
+  resetPasswordOtp,
 };

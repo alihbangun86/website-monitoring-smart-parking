@@ -9,6 +9,8 @@ const {
   dashboardSummary,
   getDataParkir,
   exportParkirPDF,
+  setKuotaParkir,
+  getKuotaKendaraan
 } = require("../controllers/adminController");
 
 /**
@@ -126,5 +128,12 @@ router.get("/parkir", getDataParkir);
 
 // EXPORT DATA PARKIR KE PDF
 router.get("/parkir/export/pdf", exportParkirPDF);
+
+// SET / UPDATE KUOTA (ADMIN)
+router.post("/kuota", setKuotaParkir);
+
+// GET KUOTA PER KENDARAAN
+router.get("/kuota/:id_kendaraan", getKuotaKendaraan);
+
 
 module.exports = router;

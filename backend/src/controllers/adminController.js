@@ -178,31 +178,79 @@ const getDataPengguna = async (req, res) => {
  */
 const generateRFID = async (req, res) => {
   try {
-    const { id_kendaraan } = req.body;
+    const { id_kendaraan, kode_rfid } = req.body;
 
-    if (!id_kendaraan) {
+    if (!id_kendaraan || !kode_rfid) {
       return res.status(400).json({
         status: "error",
-        message: "ID kendaraan wajib diisi",
+        message: "ID kendaraan dan UID RFID wajib dikirim",
       });
     }
 
-    const kode_rfid = `RFID-${Date.now()}`;
+    // Normalisasi UID (HEX, uppercase, tanpa spasi)
+    const normalizedUID = kode_rfid
+      .replace(/[^A-Fa-f0-9]/g, "")
+      .toUpperCase();
 
+    if (normalizedUID.length < 8) {
+      return res.status(400).json({
+        status: "error",
+        message: "Format UID RFID tidak valid",
+      });
+    }
+
+    // 1️⃣ Cek UID sudah terdaftar
+    const cekUID = await query(
+      "SELECT id_rfid FROM rfid WHERE kode_rfid = ? LIMIT 1",
+      [normalizedUID]
+    );
+
+    if (cekUID.length > 0) {
+      return res.status(409).json({
+        status: "error",
+        message: "UID RFID sudah terdaftar",
+      });
+    }
+
+    // 2️⃣ Cek kendaraan sudah punya RFID
+    const cekKendaraan = await query(
+      "SELECT id_rfid FROM rfid WHERE id_kendaraan = ? LIMIT 1",
+      [id_kendaraan]
+    );
+
+    if (cekKendaraan.length > 0) {
+      return res.status(409).json({
+        status: "error",
+        message: "Kendaraan sudah memiliki RFID",
+      });
+    }
+
+    // 3️⃣ Simpan RFID
     await query(
-      "INSERT INTO rfid (id_kendaraan, kode_rfid, status_rfid) VALUES (?, ?, 1)",
-      [id_kendaraan, kode_rfid]
+      `INSERT INTO rfid (id_kendaraan, kode_rfid, status_rfid, tanggal_aktif)
+       VALUES (?, ?, TRUE, NOW())`,
+      [id_kendaraan, normalizedUID]
     );
 
     return res.status(201).json({
       status: "success",
-      data: { kode_rfid },
+      message: "RFID berhasil didaftarkan",
+      data: {
+        id_kendaraan,
+        kode_rfid: normalizedUID,
+      },
     });
-  } catch (err) {
-    console.error("generateRFID:", err);
-    return res.status(500).json({ status: "error", message: "Server error" });
+  } catch (error) {
+    console.error("scanDanDaftarRFID:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error",
+    });
   }
 };
+
+
+
 
 /**
  * =========================
@@ -359,6 +407,107 @@ const exportParkirPDF = async (req, res) => {
 };
 
 /**
+ * ======================================
+ * SET / UPDATE KUOTA PARKIR (ADMIN)
+ * ======================================
+ * body:
+ * {
+ *   "id_kendaraan": 1,
+ *   "batas_parkir": 30,
+ *   "periode_bulan": "2026-02"
+ * }
+ */
+const setKuotaParkir = async (req, res) => {
+  try {
+    const { id_kendaraan, batas_parkir, periode_bulan } = req.body;
+
+    if (!id_kendaraan || !batas_parkir || !periode_bulan) {
+      return res.status(400).json({
+        status: "error",
+        message: "id_kendaraan, batas_parkir, dan periode_bulan wajib diisi",
+      });
+    }
+
+    // cek apakah kuota sudah ada
+    const existing = await query(
+      `SELECT id_kuota FROM kuota_parkir
+       WHERE id_kendaraan = ? AND periode_bulan = ?
+       LIMIT 1`,
+      [id_kendaraan, periode_bulan]
+    );
+
+    if (existing.length > 0) {
+      // update kuota
+      await query(
+        `UPDATE kuota_parkir
+         SET batas_parkir = ?
+         WHERE id_kuota = ?`,
+        [batas_parkir, existing[0].id_kuota]
+      );
+
+      return res.json({
+        status: "success",
+        message: "Kuota parkir berhasil diperbarui",
+      });
+    }
+
+    // insert kuota baru
+    await query(
+      `INSERT INTO kuota_parkir
+       (id_kendaraan, batas_parkir, jumlah_terpakai, periode_bulan)
+       VALUES (?, ?, 0, ?)`,
+      [id_kendaraan, batas_parkir, periode_bulan]
+    );
+
+    return res.status(201).json({
+      status: "success",
+      message: "Kuota parkir berhasil ditambahkan",
+    });
+  } catch (err) {
+    console.error("setKuotaParkir:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error",
+    });
+  }
+};
+
+/**
+ * ======================================
+ * GET KUOTA PARKIR PER KENDARAAN
+ * ======================================
+ */
+const getKuotaKendaraan = async (req, res) => {
+  try {
+    const { id_kendaraan } = req.params;
+
+    const rows = await query(
+      `SELECT
+         batas_parkir,
+         jumlah_terpakai,
+         (batas_parkir - jumlah_terpakai) AS sisa_kuota,
+         periode_bulan
+       FROM kuota_parkir
+       WHERE id_kendaraan = ?
+       ORDER BY periode_bulan DESC`,
+      [id_kendaraan]
+    );
+
+    return res.json({
+      status: "success",
+      data: rows,
+    });
+  } catch (err) {
+    console.error("getKuotaKendaraan:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error",
+    });
+  }
+};
+
+
+/**
  * =========================
  * EXPORT
  * =========================
@@ -371,4 +520,6 @@ module.exports = {
   dashboardSummary,
   getDataParkir,
   exportParkirPDF,
+  setKuotaParkir,
+  getKuotaKendaraan,
 };

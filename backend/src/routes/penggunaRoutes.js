@@ -8,6 +8,8 @@ const {
   logoutPengguna,
   editProfilPengguna,
   riwayatParkirPengguna,
+  requestOtp,
+  resetPasswordOtp,
 } = require("../controllers/penggunaController");
 
 // ====================================================
@@ -58,5 +60,8 @@ router.put("/profil", editProfilPengguna);
 router.get("/parkir/riwayat/:npm", riwayatParkirPengguna);
 
 // ====================================================
+
+router.post("/lupa-password/otp", requestOtp);
+router.post("/lupa-password/reset", resetPasswordOtp);
 
 module.exports = router;
