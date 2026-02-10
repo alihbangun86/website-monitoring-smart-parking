@@ -83,9 +83,11 @@ CREATE TABLE slot_parkir (
 -- =========================
 CREATE TABLE kuota_parkir (
     id_kuota INT AUTO_INCREMENT PRIMARY KEY,
-    batas_parkir INT NOT NULL,
+    npm VARCHAR(50),
+    id_kendaraan INT,
+    periode_bulan VARCHAR(7), -- Format: YYYY-MM
+    batas_parkir INT NOT NULL DEFAULT 0,
     jumlah_terpakai INT DEFAULT 0,
-    npm VARCHAR(50), 
     id_admin INT,
     CONSTRAINT fk_kuota_admin
         FOREIGN KEY (id_admin)
@@ -93,7 +95,12 @@ CREATE TABLE kuota_parkir (
     CONSTRAINT fk_kuota_pengguna
         FOREIGN KEY (npm)
         REFERENCES pengguna(npm)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_kuota_kendaraan
+        FOREIGN KEY (id_kendaraan)
+        REFERENCES kendaraan(id_kendaraan)
+        ON DELETE CASCADE,
+    UNIQUE KEY (id_kendaraan, periode_bulan)
 );
 
 -- =========================

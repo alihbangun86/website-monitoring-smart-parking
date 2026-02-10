@@ -2,13 +2,13 @@ const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 // 🔎 Debug (hapus nanti kalau sudah normal)
-console.log("EMAIL:", process.env.EMAIL);
+console.log("EMAIL:", process.env.EMAIL_USER);
 console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "ADA" : "TIDAK ADA");
 
 // 🚨 Cek apakah env tersedia
-if (!process.env.EMAIL || !process.env.EMAIL_PASS) {
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     throw new Error(
-        "EMAIL atau EMAIL_PASS belum diset di file .env"
+        "EMAIL_USER atau EMAIL_PASS belum diset di file .env"
     );
 }
 
@@ -16,8 +16,8 @@ if (!process.env.EMAIL || !process.env.EMAIL_PASS) {
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : "",
     },
 });
 
@@ -27,7 +27,7 @@ const transporter = nodemailer.createTransport({
 const sendOtpEmail = async (to, otp) => {
     try {
         const mailOptions = {
-            from: `"Smart Parking System" <${process.env.EMAIL}>`,
+            from: `"Smart Parking System" <${process.env.EMAIL_USER}>`,
             to,
             subject: "Kode OTP Reset Password",
             html: `

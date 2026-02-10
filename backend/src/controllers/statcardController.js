@@ -20,7 +20,9 @@ const getStatCardParkir = async (req, res) => {
     const terisi = terisiRows[0]?.terisi || 0;
 
     // ===== TERSEDIA (SLOT FISIK) =====
-    const tersedia = Math.max(total_slot - terisi, 0);
+    // Karena di parkirController.js sudah ada query "UPDATE slot_parkir SET jumlah = jumlah - 1",
+    // maka total_slot sudah merupakan angka slot yang masih tersedia.
+    const tersedia = total_slot;
 
     // ===== BATAS PARKIR (KEBIJAKAN ADMIN) =====
     let batas_parkir = 0;

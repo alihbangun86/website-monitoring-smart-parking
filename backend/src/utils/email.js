@@ -5,8 +5,8 @@ const nodemailer = require("nodemailer");
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, "") : "",
     },
 });
 
@@ -18,7 +18,7 @@ transporter.verify((error) => {
     }
 });
 
-console.log("EMAIL:", process.env.EMAIL);
+console.log("EMAIL:", process.env.EMAIL_USER);
 
 
 const sendVerificationEmail = async (toEmail) => {
@@ -31,7 +31,7 @@ const sendVerificationEmail = async (toEmail) => {
         console.log("Mengirim email verifikasi ke:", toEmail);
 
         const info = await transporter.sendMail({
-            from: `"Smart Parking" <${process.env.EMAIL}>`,
+            from: `"Smart Parking" <${process.env.EMAIL_USER}>`,
             to: toEmail,
             subject: "Akun Anda Telah Diverifikasi",
             html: `
@@ -61,7 +61,7 @@ const sendRegistrationPendingEmail = async (toEmail, nama) => {
         console.log("Mengirim email pendaftaran ke:", toEmail);
 
         const info = await transporter.sendMail({
-            from: `"Smart Parking" <${process.env.EMAIL}>`,
+            from: `"Smart Parking" <${process.env.EMAIL_USER}>`,
             to: toEmail,
             subject: "Pendaftaran Berhasil - Menunggu Verifikasi",
             html: `

@@ -2,11 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  parkirMasuk,
-  parkirKeluar,
+  parkirScan,
 } = require("../controllers/parkirController");
 
-router.post("/masuk", parkirMasuk);
-router.post("/keluar", parkirKeluar);
+router.post("/scan", parkirScan);
 
 module.exports = router;
