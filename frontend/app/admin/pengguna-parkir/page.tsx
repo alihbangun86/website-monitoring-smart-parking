@@ -42,10 +42,7 @@ export default function PenggunaParkirAdminPage() {
       </section>
 
       {/* ================= DATA TABLE ================= */}
-      <DataPenggunaTable
-        search={search}
-        statusFilter={statusFilter}
-      />
+      <DataPenggunaTable search={search} statusFilter={statusFilter} />
 
       {/* ================= FOOTER SPACE ================= */}
       <div className="h-10" />

@@ -8,7 +8,9 @@ type User = {
   npm: string;
   nama: string;
   plat_nomor: string | null;
-  status_akun: number | null; // 1 aktif, 0 blokir, null menunggu
+  status_akun: number | null; // 1 aktif, 0 menunggu, 2 diblokir
+  stnk: string | null;
+  sisa_kuota: number;
 };
 
 type Props = {
@@ -24,6 +26,7 @@ export default function DataPenggunaTable({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // ... (fetchUsers tetap sama)
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -112,7 +115,7 @@ export default function DataPenggunaTable({
     const statusText =
       user.status_akun === 1
         ? "aktif"
-        : user.status_akun === 0
+        : user.status_akun === 2
           ? "diblokir"
           : "menunggu";
 
@@ -138,6 +141,7 @@ export default function DataPenggunaTable({
             <Th>NPM</Th>
             <Th>Nama</Th>
             <Th>No Kendaraan</Th>
+            <Th>Kesempatan</Th>
             <Th>Status</Th>
             <Th>Aksi</Th>
           </tr>
@@ -146,7 +150,7 @@ export default function DataPenggunaTable({
         <tbody>
           {filteredUsers.length === 0 && (
             <tr>
-              <Td colSpan={5}>
+              <Td colSpan={6}>
                 <span className="text-gray-500">
                   Tidak ada data yang sesuai
                 </span>
@@ -158,7 +162,7 @@ export default function DataPenggunaTable({
             const statusLabel =
               user.status_akun === 1
                 ? "Aktif"
-                : user.status_akun === 0
+                : user.status_akun === 2
                   ? "Diblokir"
                   : "Menunggu";
 
@@ -171,7 +175,7 @@ export default function DataPenggunaTable({
 
                 <Td>
                   <Link
-                    href={`/admin/pengguna/${user.npm}`}
+                    href={`/admin/pengguna-parkir/${user.npm}`}
                     className="font-semibold text-[#1F3A93] hover:underline"
                   >
                     {user.nama}
@@ -179,6 +183,27 @@ export default function DataPenggunaTable({
                 </Td>
 
                 <Td>{user.plat_nomor ?? "-"}</Td>
+
+                <Td>
+                  <span className="font-semibold text-gray-700">
+                    {user.sisa_kuota} kali
+                  </span>
+                </Td>
+
+                <Td>
+                  {user.stnk ? (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL}/uploads/${user.stnk}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-blue-600 hover:underline"
+                    >
+                      LIHAT STNK
+                    </a>
+                  ) : (
+                    <span className="text-[10px] text-gray-400">TIDAK ADA</span>
+                  )}
+                </Td>
 
                 <Td>
                   <span
@@ -208,7 +233,7 @@ export default function DataPenggunaTable({
                     <button
                       disabled={actionLoading}
                       title="Blokir"
-                      onClick={() => updateStatus(user.npm, 0)}
+                      onClick={() => updateStatus(user.npm, 2)}
                       className="rounded-md bg-yellow-500 p-2 text-white hover:bg-yellow-600 disabled:opacity-50"
                     >
                       <Ban size={14} />
@@ -232,6 +257,7 @@ export default function DataPenggunaTable({
     </div>
   );
 }
+
 
 /* ===== REUSABLE CELL ===== */
 function Th({ children }: { children: React.ReactNode }) {

@@ -14,15 +14,18 @@ USE parkir_db;
 -- TABEL PENGGUNA
 -- =========================
 CREATE TABLE pengguna (
-    npm VARCHAR (50) PRIMARY KEY,
+    npm VARCHAR(50) PRIMARY KEY,
     nama VARCHAR(50) NOT NULL,
     email VARCHAR(50) UNIQUE,
+    jurusan VARCHAR(100),
+    prodi VARCHAR(100),
     angkatan VARCHAR(50),
     foto VARCHAR(100),
     password VARCHAR(50) NOT NULL,
-    status_akun BOOLEAN DEFAULT TRUE,
+    status_akun BOOLEAN DEFAULT FALSE,
     tanggal_daftar DATETIME
 );
+
 
 -- =========================
 -- TABEL ADMIN
@@ -82,10 +85,15 @@ CREATE TABLE kuota_parkir (
     id_kuota INT AUTO_INCREMENT PRIMARY KEY,
     batas_parkir INT NOT NULL,
     jumlah_terpakai INT DEFAULT 0,
+    npm VARCHAR(50), 
     id_admin INT,
     CONSTRAINT fk_kuota_admin
         FOREIGN KEY (id_admin)
-        REFERENCES admin(id_admin)
+        REFERENCES admin(id_admin),
+    CONSTRAINT fk_kuota_pengguna
+        FOREIGN KEY (npm)
+        REFERENCES pengguna(npm)
+        ON DELETE CASCADE
 );
 
 -- =========================
@@ -106,3 +114,12 @@ CREATE TABLE log_parkir (
         REFERENCES kuota_parkir(id_kuota)
 );
 
+-- Tabel OTP
+
+CREATE TABLE reset_password_otp (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(50) NOT NULL,
+    otp VARCHAR(6) NOT NULL,
+    expired_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

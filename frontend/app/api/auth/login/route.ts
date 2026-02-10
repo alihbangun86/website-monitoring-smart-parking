@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const backendRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+    const backendRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pengguna/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ npm, password }),

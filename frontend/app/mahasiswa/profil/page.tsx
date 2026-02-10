@@ -1,215 +1,288 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState } from "react";
+
+/* ================= DATA JURUSAN ================= */
+
+const jurusanList = [
+  "Jurusan Teknik Sipil",
+  "Jurusan Teknik Mesin",
+  "Jurusan Teknik Elektro",
+  "Jurusan Teknik Geofisika",
+  "Jurusan Teknik Kimia",
+  "Jurusan Teknik Geodesi dan Geomatika",
+  "Jurusan Teknik Arsitektur",
+];
+
+const prodiByJurusan: Record<string, string[]> = {
+  "Jurusan Teknik Sipil": [
+    "Program Studi S1 Teknik Sipil",
+    "Program Studi S1 Teknik Lingkungan",
+    "Program Studi Magister Teknik Sipil",
+  ],
+  "Jurusan Teknik Mesin": [
+    "Program Studi S1 Teknik Mesin",
+    "Program Studi S1 Terapan Rekayasa Otomotif",
+    "Program Studi Magister Teknik Mesin",
+    "Program Studi Diploma 3 Teknik Mesin",
+  ],
+  "Jurusan Teknik Elektro": [
+    "Program Studi S1 Teknik Elektro",
+    "Program Studi S1 Teknik Informatika",
+    "Program Studi Magister Teknik Elektro",
+  ],
+  "Jurusan Teknik Geofisika": ["Program Studi S1 Teknik Geofisika"],
+  "Jurusan Teknik Kimia": ["Program Studi S1 Teknik Kimia"],
+  "Jurusan Teknik Geodesi dan Geomatika": [
+    "Program Studi S1 Teknik Geodesi",
+    "Program Studi Diploma 3 Teknik Survey dan Pemetaan",
+  ],
+  "Jurusan Teknik Arsitektur": [
+    "Program Studi S1 Arsitektur",
+    "Program Studi Diploma 3 Arsitek Bangunan Gedung (D3 ABG)",
+  ],
+};
 
 export default function ProfilMahasiswaPage() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [foto, setFoto] = useState<string | null>(null);
+  const [profil, setProfil] = useState<any>(null);
+  const [previewFoto, setPreviewFoto] = useState<string | null>(null);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
 
-  const [profil, setProfil] = useState({
-    nama: "Nama Mahasiswa",
-    npm: "221506xxxx",
-    noKendaraan: "BE 1234 XX",
-    email: "email@student.unila.ac.id",
-    tipeKendaraan: "Motor",
-    warnaKendaraan: "Hitam",
-    jurusan: "Teknik Geodesi",
-    angkatan: "2022",
-  });
+  /* ================= FETCH ================= */
 
-  const [password, setPassword] = useState({
-    baru: "",
-    konfirmasi: "",
-  });
+  const fetchProfil = async () => {
+    const npm = localStorage.getItem("npm");
+    if (!npm) return;
 
-  /* ================= HANDLER ================= */
-  const handleChangeProfil = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProfil({ ...profil, [e.target.name]: e.target.value });
+    const res = await fetch(`/api/users/profile?npm=${npm}`);
+    const data = await res.json();
+
+    if (res.ok) {
+      setProfil(data.data);
+
+      if (data.data?.foto) {
+        setPreviewFoto(
+          `${process.env.NEXT_PUBLIC_API_URL}/uploads/${data.data.foto}`
+        );
+      }
+    }
   };
 
-  const handleChangePassword = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword({ ...password, [e.target.name]: e.target.value });
+  useEffect(() => {
+    fetchProfil();
+  }, []);
+
+  if (!profil) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+        Memuat data...
+      </div>
+    );
+  }
+
+  /* ================= HANDLERS ================= */
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+
+    setProfil((prev: any) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "jurusan" ? { prodi: "" } : {}),
+    }));
   };
 
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoChange = (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("File harus berupa gambar");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => setFoto(reader.result as string);
-    reader.readAsDataURL(file);
+    setFotoFile(file);
+    setPreviewFoto(URL.createObjectURL(file));
   };
 
-  const handleSave = () => {
-    if (password.baru || password.konfirmasi) {
-      if (password.baru !== password.konfirmasi) {
-        alert("Konfirmasi kata sandi tidak sesuai");
-        return;
-      }
-    }
+  const handleSave = async () => {
+    const formData = new FormData();
+    formData.append("npm", profil.npm);
+    formData.append("jurusan", profil.jurusan);
+    formData.append("prodi", profil.prodi);
+    formData.append("plat_nomor", profil.plat_nomor);
+    if (fotoFile) formData.append("foto", fotoFile);
 
-    alert("Profil berhasil diperbarui");
-    setPassword({ baru: "", konfirmasi: "" });
+    const res = await fetch("/api/users/profile", {
+      method: "PUT",
+      body: formData,
+    });
+
+    if (res.ok) {
+      alert("Profil berhasil diperbarui");
+      fetchProfil(); // Segarkan data
+    } else {
+      alert("Gagal memperbarui profil");
+    }
   };
+
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL;
 
   return (
-    <div className="rounded-xl border border-[#1F3A93] bg-[#E9EBEE] p-8">
-      {/* ================= HEADER ================= */}
-      <div className="mb-10 flex flex-col items-center">
-        {/* FOTO PROFIL */}
-        <div className="relative">
-          <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-[#1F3A93] shadow-md">
-            {foto ? (
-              <img
-                src={foto}
-                alt="Foto Profil"
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gray-400 text-sm text-white">
-                Foto
-              </div>
-            )}
-          </div>
+    <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
 
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFotoChange}
-            className="hidden"
-          />
+      {/* ================= HEADER ================= */}
+      <div className="flex flex-col items-center gap-4 border-b pb-6">
+
+        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full border-2 border-[#1F3A93] overflow-hidden bg-white">
+          {previewFoto ? (
+            <img
+              src={previewFoto}
+              alt="Foto Profil"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-gray-200" />
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-4 rounded-full border border-[#1F3A93] px-5 py-1.5
-          text-xs font-semibold text-[#1F3A93] transition
-          hover:bg-[#1F3A93] hover:text-white"
-        >
-          Ubah Foto Profil
-        </button>
+        <input
+          id="uploadFoto"
+          type="file"
+          accept="image/*"
+          onChange={handleFotoChange}
+          hidden
+        />
 
-        {/* STATUS */}
-        <div className="mt-4 flex items-center gap-2 rounded-full bg-green-50 px-4 py-1.5 text-xs font-semibold text-green-700">
-          <span className="h-2.5 w-2.5 rounded-full bg-green-600"></span>
+        <label
+          htmlFor="uploadFoto"
+          className="cursor-pointer rounded bg-[#1F3A93] px-4 py-1 text-xs font-semibold text-white hover:bg-[#162C6E] transition"
+        >
+          Ubah Foto
+        </label>
+
+        <div className="text-sm font-medium text-green-600">
           Akun Aktif
         </div>
       </div>
 
-      <hr className="mb-8 border-gray-300" />
+      {/* ================= INFORMASI ================= */}
+      <section>
+        <h3 className="text-sm font-semibold text-gray-800 border-b pb-1 mb-3">
+          Informasi Profil
+        </h3>
 
-      {/* ================= INFORMASI PROFIL ================= */}
-      <h3 className="mb-4 text-sm font-semibold text-gray-700">
-        Informasi Profil
-      </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Nama Lengkap" value={profil.nama} disabled />
+          <Field label="NPM" value={profil.npm} disabled />
+          <Field label="Email" value={profil.email} disabled />
+          <Field label="Nomor Kendaraan" value={profil.plat_nomor} disabled />
 
-      <form className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-        {/* ===== TIDAK BISA DIUBAH ===== */}
-        <Field label="Nama Lengkap" value={profil.nama} disabled />
-        <Field label="NPM" value={profil.npm} disabled />
-        <Field label="Nomor Kendaraan" value={profil.noKendaraan} disabled />
-        <Field label="Email" value={profil.email} disabled />
+          <Select
+            label="Fakultas / Jurusan"
+            name="jurusan"
+            value={profil.jurusan}
+            onChange={handleChange}
+            options={jurusanList}
+          />
 
-        {/* ===== BISA DIUBAH ===== */}
-        <Field
-          label="Tipe Kendaraan"
-          name="tipeKendaraan"
-          value={profil.tipeKendaraan}
-          onChange={handleChangeProfil}
-        />
-        <Field
-          label="Warna Kendaraan"
-          name="warnaKendaraan"
-          value={profil.warnaKendaraan}
-          onChange={handleChangeProfil}
-        />
-        <Field
-          label="Angkatan"
-          name="angkatan"
-          value={profil.angkatan}
-          onChange={handleChangeProfil}
-        />
-      </form>
-
-      {/* ================= PASSWORD ================= */}
-      <hr className="my-8 border-gray-300" />
-
-      <h3 className="mb-4 text-sm font-semibold text-gray-700">
-        Ganti Kata Sandi
-      </h3>
-
-      <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-        <Field
-          label="Kata Sandi Baru"
-          name="baru"
-          type="password"
-          value={password.baru}
-          onChange={handleChangePassword}
-        />
-        <Field
-          label="Konfirmasi Kata Sandi"
-          name="konfirmasi"
-          type="password"
-          value={password.konfirmasi}
-          onChange={handleChangePassword}
-        />
+          <Select
+            label="Program Studi"
+            name="prodi"
+            value={profil.prodi}
+            onChange={handleChange}
+            options={prodiByJurusan[profil.jurusan] || []}
+            disabled={!profil.jurusan}
+          />
+        </div>
+      </section>
+      {/* ================= STNK ================= */}
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold text-gray-800 border-b pb-2">
+          Lampiran STNK
+        </h2>
+        {profil.stnk ? (
+          <div className="mt-4 flex flex-col items-start gap-4">
+            <div className="relative h-40 w-64 overflow-hidden rounded-lg border border-gray-200 shadow-sm transition hover:shadow-md">
+              <img
+                src={`${apiBase}/uploads/${profil.stnk}`}
+                alt="STNK"
+                className="h-full w-full object-contain bg-gray-50"
+              />
+            </div>
+            <a
+              href={`${apiBase}/uploads/${profil.stnk}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-100 transition"
+            >
+              Buka Gambar Penuh ↗
+            </a>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 italic">Belum ada lampiran STNK</p>
+        )}
       </div>
 
-      {/* ================= SIMPAN ================= */}
-      <div className="mt-10 flex justify-end">
+      {/* ================= GANTI PASSWORD ================= */}
+      <section className="mt-8 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-800 border-b pb-1">
+          Ganti Kata Sandi
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field
+            label="Kata Sandi Baru"
+            type="password"
+            name="password_baru"
+          />
+          <Field
+            label="Konfirmasi Kata Sandi"
+            type="password"
+            name="konfirmasi_password"
+          />
+        </div>
+      </section>
+
+
+      {/* ================= BUTTON ================= */}
+      <div className="flex justify-end pt-4">
         <button
-          type="button"
           onClick={handleSave}
-          className="rounded-lg bg-[#1F3A93] px-8 py-2.5
-          text-sm font-semibold text-white transition
-          hover:bg-[#162C6E]"
+          className="rounded bg-[#1F3A93] px-5 py-2 text-xs font-semibold text-white hover:bg-[#162C6E] transition active:scale-95"
         >
-          Simpan Perubahan
+          Simpan
         </button>
       </div>
     </div>
   );
 }
 
-/* ================= REUSABLE FIELD ================= */
-function Field({
-  label,
-  name,
-  value,
-  onChange,
-  type = "text",
-  disabled = false,
-}: {
-  label: string;
-  name?: string;
-  value: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  type?: string;
-  disabled?: boolean;
-}) {
+/* ================= FIELD ================= */
+
+function Field({ label, ...props }: any) {
   return (
-    <div className="space-y-1">
-      <label className="text-xs font-semibold text-gray-600">{label}</label>
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-medium text-gray-600">{label}</label>
       <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        className={`w-full rounded-lg border px-4 py-2 text-sm transition
-          ${
-            disabled
-              ? "cursor-not-allowed border-gray-300 bg-gray-100 text-gray-500"
-              : "border-[#1F3A93] focus:ring-2 focus:ring-[#1F3A93]"
-          }`}
+        {...props}
+        className="w-full rounded border border-gray-300 px-3 py-1.5 text-xs bg-white disabled:bg-gray-100 disabled:text-gray-400"
       />
+    </div>
+  );
+}
+
+function Select({ label, options, ...props }: any) {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs font-medium text-gray-600">{label}</label>
+      <select
+        {...props}
+        className="w-full rounded border border-gray-300 px-3 py-1.5 text-xs bg-white"
+      >
+        <option value="">Pilih</option>
+        {options.map((opt: string) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

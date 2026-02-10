@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BE_BASE = "http://localhost:5000/api/admin/pengguna";
+const BE_BASE = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/pengguna`;
 
 export async function DELETE(
     req: Request,

@@ -1,42 +1,28 @@
-const { query } = require("../config/database");
+const { query, pool } = require("../config/database");
+const { sendOtpEmail } = require("../utils/lupapswd");
+const { sendRegistrationPendingEmail } = require("../utils/email");
+const bcrypt = require("bcryptjs");
 
 /* =====================================================
- * KF-01 : REGISTRASI PENGGUNA + KENDARAAN
- * (PASSWORD PLAIN - SESUAI PERMINTAAN)
- * ===================================================== */
+   REGISTER PENGGUNA
+===================================================== */
 const registerPengguna = async (req, res) => {
-  try {
-    const {
-      npm,
-      nama,
-      email,
-      angkatan,
-      foto,
-      password,
-      plat_nomor,
-      jenis_kendaraan,
-      stnk,
-    } = req.body;
+  const connection = await pool.getConnection();
 
-    if (
-      !npm ||
-      !nama ||
-      !email ||
-      !angkatan ||
-      !password ||
-      !plat_nomor ||
-      jenis_kendaraan === undefined
-    ) {
+  try {
+    const { npm, nama, email, jurusan, prodi, password, plat_nomor } = req.body;
+    const stnk = req.file ? req.file.filename : null;
+
+    if (!npm || !nama || !email || !jurusan || !prodi || !password || !plat_nomor) {
       return res.status(400).json({
         status: "error",
-        message: "Data akun dan kendaraan wajib diisi",
+        message: "Semua field wajib diisi",
       });
     }
 
-    // Cek duplikasi akun
-    const existing = await query(
+    const [existing] = await connection.query(
       "SELECT npm FROM pengguna WHERE npm = ? OR email = ?",
-      [npm, email],
+      [npm, email]
     );
 
     if (existing.length > 0) {
@@ -46,49 +32,48 @@ const registerPengguna = async (req, res) => {
       });
     }
 
-    const tanggal_daftar = new Date();
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert pengguna
-    await query(
+    await connection.beginTransaction();
+
+    await connection.query(
       `INSERT INTO pengguna
-       (npm, nama, email, angkatan, foto, password, status_akun, tanggal_daftar)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        npm,
-        nama,
-        email,
-        angkatan,
-        foto || null,
-        password, // ⚠️ plain password
-        1, // aktif (atau 0 jika pakai verifikasi admin)
-        tanggal_daftar,
-      ],
+       (npm, nama, email, jurusan, prodi, password, status_akun, tanggal_daftar)
+       VALUES (?, ?, ?, ?, ?, ?, 0, NOW())`,
+      [npm, nama, email, jurusan, prodi, hashedPassword]
     );
 
-    // Insert kendaraan
-    await query(
-      `INSERT INTO kendaraan
-       (npm, plat_nomor, jenis_kendaraan, stnk)
-       VALUES (?, ?, ?, ?)`,
-      [npm, plat_nomor, jenis_kendaraan, stnk || null],
+    await connection.query(
+      `INSERT INTO kendaraan (npm, plat_nomor, stnk)
+       VALUES (?, ?, ?)`,
+      [npm, plat_nomor, stnk]
     );
+
+    await connection.commit();
+
+    // kirim email notifikasi (tidak menggagalkan registrasi jika error)
+    sendRegistrationPendingEmail(email, nama);
 
     return res.status(201).json({
       status: "success",
-      message: "Registrasi berhasil",
+      message: "Registrasi berhasil, menunggu verifikasi admin",
     });
   } catch (error) {
-    console.error("registerPengguna error:", error);
+    await connection.rollback();
+    console.error("REGISTER ERROR:", error);
+
     return res.status(500).json({
       status: "error",
-      message: "Internal server error",
+      message: "Gagal melakukan registrasi",
     });
+  } finally {
+    connection.release();
   }
 };
 
 /* =====================================================
- * KF-02 : LOGIN PENGGUNA
- * ===================================================== */
+   LOGIN
+===================================================== */
 const loginPengguna = async (req, res) => {
   try {
     const { npm, password } = req.body;
@@ -101,11 +86,9 @@ const loginPengguna = async (req, res) => {
     }
 
     const rows = await query(
-      `SELECT npm, nama, email, angkatan, foto, password, status_akun
-       FROM pengguna
-       WHERE npm = ?
-       LIMIT 1`,
-      [npm],
+      `SELECT npm, nama, email, jurusan, prodi, password, status_akun
+       FROM pengguna WHERE npm = ? LIMIT 1`,
+      [npm]
     );
 
     if (rows.length === 0) {
@@ -117,14 +100,21 @@ const loginPengguna = async (req, res) => {
 
     const user = rows[0];
 
-    if (!user.status_akun) {
+    // Cek status_akun (1 = Aktif)
+    if (user.status_akun !== 1) {
+      let msg = "Akun belum diverifikasi admin";
+      if (user.status_akun === 2) msg = "Akun Anda telah ditangguhkan/diblokir";
+
       return res.status(403).json({
         status: "error",
-        message: "Akun belum diverifikasi admin",
+        message: msg,
       });
     }
 
-    if (password !== user.password) {
+    const match = await bcrypt.compare(password, user.password);
+
+
+    if (!match) {
       return res.status(401).json({
         status: "error",
         message: "NPM atau password salah",
@@ -138,12 +128,12 @@ const loginPengguna = async (req, res) => {
         npm: user.npm,
         nama: user.nama,
         email: user.email,
-        angkatan: user.angkatan,
-        foto: user.foto || null,
+        jurusan: user.jurusan,
+        prodi: user.prodi,
       },
     });
   } catch (error) {
-    console.error("loginPengguna error:", error);
+    console.error("LOGIN ERROR: ", error);
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
@@ -152,20 +142,63 @@ const loginPengguna = async (req, res) => {
 };
 
 /* =====================================================
- * KF-13 : EDIT PROFIL PENGGUNA
- * ===================================================== */
+   GET PROFIL
+===================================================== */
+const getProfilPengguna = async (req, res) => {
+  try {
+    const { npm } = req.params;
+
+    const rows = await query(
+      `SELECT p.npm, p.nama, p.email, p.jurusan, p.prodi, p.foto, p.status_akun,
+              k.plat_nomor, k.stnk,
+              COALESCE(
+                (SELECT batas_parkir FROM kuota_parkir WHERE npm = p.npm ORDER BY id_kuota DESC LIMIT 1),
+                (SELECT batas_parkir FROM kuota_parkir WHERE npm IS NULL ORDER BY id_kuota DESC LIMIT 1), 
+                0
+              ) - (
+                SELECT COUNT(*) 
+                FROM log_parkir l2 
+                JOIN kendaraan k2 ON l2.id_kendaraan = k2.id_kendaraan 
+                WHERE k2.npm = p.npm
+              ) AS sisa_kuota
+       FROM pengguna p
+       LEFT JOIN kendaraan k ON p.npm = k.npm
+       WHERE p.npm = ?`,
+      [npm]
+    );
+
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Profil tidak ditemukan",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: rows[0],
+    });
+  } catch (error) {
+    console.error("GET PROFIL ERROR:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal mengambil profil",
+    });
+  }
+};
+
+/* =====================================================
+   UPDATE PROFIL
+===================================================== */
 const editProfilPengguna = async (req, res) => {
   try {
-    const {
-      npm,
-      nama,
-      email,
-      angkatan,
-      foto,
-      plat_nomor,
-      jenis_kendaraan,
-      stnk,
-    } = req.body;
+    console.log("📥 UPDATE PROFIL REQUEST:", req.body);
+    const { npm, jurusan, prodi, plat_nomor } = req.body;
+
+    // Ambil file jika ada (menggunakan upload.fields)
+    const foto = req.files?.["foto"] ? req.files["foto"][0].filename : null;
+    const stnk = req.files?.["stnk"] ? req.files["stnk"][0].filename : null;
 
     if (!npm) {
       return res.status(400).json({
@@ -174,103 +207,225 @@ const editProfilPengguna = async (req, res) => {
       });
     }
 
-    await query(
-      `UPDATE pengguna
-       SET nama = ?, email = ?, angkatan = ?, foto = ?
-       WHERE npm = ?`,
-      [nama, email, angkatan, foto || null, npm],
-    );
+    const trimmedNpm = npm.trim();
 
-    await query(
-      `UPDATE kendaraan
-       SET plat_nomor = ?, jenis_kendaraan = ?, stnk = ?
-       WHERE npm = ?`,
-      [plat_nomor, jenis_kendaraan, stnk || null, npm],
-    );
+    // Update data di tabel pengguna
+    if (foto) {
+      await query(
+        "UPDATE pengguna SET jurusan = ?, prodi = ?, foto = ? WHERE npm = ?",
+        [jurusan, prodi, foto, trimmedNpm]
+      );
+    } else {
+      await query(
+        "UPDATE pengguna SET jurusan = ?, prodi = ? WHERE npm = ?",
+        [jurusan, prodi, trimmedNpm]
+      );
+    }
+
+    // Update data di tabel kendaraan
+    // Hanya update jika plat_nomor dikirim atau stnk dikirim
+    if (stnk && plat_nomor) {
+      await query(
+        "UPDATE kendaraan SET plat_nomor = ?, stnk = ? WHERE npm = ?",
+        [plat_nomor, stnk, trimmedNpm]
+      );
+    } else if (stnk) {
+      await query(
+        "UPDATE kendaraan SET stnk = ? WHERE npm = ?",
+        [stnk, trimmedNpm]
+      );
+    } else if (plat_nomor) {
+      await query(
+        "UPDATE kendaraan SET plat_nomor = ? WHERE npm = ?",
+        [plat_nomor, trimmedNpm]
+      );
+    }
+
+    console.log(`✅ Profil NPM ${trimmedNpm} berhasil diperbarui`);
 
     return res.status(200).json({
       status: "success",
       message: "Profil berhasil diperbarui",
     });
   } catch (error) {
-    console.error("editProfilPengguna error:", error);
+    console.error("🔥 UPDATE PROFIL ERROR:", error);
     return res.status(500).json({
       status: "error",
-      message: "Internal server error",
+      message: "Gagal update profil",
     });
   }
 };
 
-/* =====================================================
- * KF-14 : RIWAYAT PARKIR PENGGUNA (FIX TOTAL)
- * ===================================================== */
-const riwayatParkirPengguna = async (req, res) => {
-  try {
-    const { npm } = req.params;
 
-    if (!npm) {
+
+/* =====================================================
+   CHANGE PASSWORD (TANPA OTP - DARI HALAMAN PROFIL)
+===================================================== */
+const changePassword = async (req, res) => {
+  try {
+    const { npm, password_baru } = req.body;
+
+    if (!npm || !password_baru) {
       return res.status(400).json({
         status: "error",
-        message: "NPM wajib diisi",
+        message: "Data tidak lengkap",
       });
     }
 
-    // 🔥 QUERY FINAL YANG BENAR
-    const rows = await query(
-      `SELECT
-         lp.id_log,
-         k.plat_nomor,
-         lp.waktu_masuk,
-         lp.waktu_keluar,
-         COALESCE(lp.status_parkir, 'MASUK') AS status_parkir
-       FROM log_parkir lp
-       INNER JOIN kendaraan k
-         ON lp.id_kendaraan = k.id_kendaraan
-       WHERE k.npm = ?
-       ORDER BY lp.waktu_masuk DESC`,
-      [npm],
+    const hashed = await bcrypt.hash(password_baru, 10);
+
+    await query(
+      "UPDATE pengguna SET password = ? WHERE npm = ?",
+      [hashed, npm]
     );
 
     return res.status(200).json({
       status: "success",
-      message: "Riwayat parkir pengguna",
+      message: "Password berhasil diubah",
+    });
+  } catch (error) {
+    console.error("CHANGE PASSWORD ERROR:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal mengubah password",
+    });
+  }
+};
+
+/* =====================================================
+   RIWAYAT PARKIR
+===================================================== */
+const riwayatParkirPengguna = async (req, res) => {
+  try {
+    const { npm } = req.params;
+
+    const rows = await query(
+      `SELECT lp.id_log, k.plat_nomor,
+              lp.waktu_masuk, lp.waktu_keluar, lp.status_parkir
+       FROM log_parkir lp
+       JOIN kendaraan k ON lp.id_kendaraan = k.id_kendaraan
+       WHERE k.npm = ?
+       ORDER BY lp.waktu_masuk DESC`,
+      [npm]
+    );
+
+    return res.status(200).json({
+      status: "success",
       data: rows,
     });
   } catch (error) {
-    console.error("riwayatParkirPengguna error:", error);
+    console.error("RIWAYAT ERROR:", error);
     return res.status(500).json({
       status: "error",
-      message: "Internal server error",
+      message: "Gagal mengambil riwayat parkir",
     });
   }
 };
 
 /* =====================================================
- * KF-03 : LOGOUT PENGGUNA
- * ===================================================== */
+   LOGOUT
+===================================================== */
 const logoutPengguna = async (req, res) => {
+  return res.status(200).json({
+    status: "success",
+    message: "Logout berhasil",
+  });
+};
+
+/* =====================================================
+   REQUEST OTP (LUPA PASSWORD)
+===================================================== */
+const requestOtp = async (req, res) => {
   try {
-    // Tidak ada session/token yang perlu dihapus
+    const { email } = req.body;
+
+    const user = await query(
+      "SELECT email FROM pengguna WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (user.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Email tidak terdaftar",
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await query("DELETE FROM reset_password_otp WHERE email = ?", [email]);
+
+    await query(
+      "INSERT INTO reset_password_otp (email, otp, expired_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))",
+      [email, otp]
+    );
+
+    await sendOtpEmail(email, otp);
+
     return res.status(200).json({
       status: "success",
-      message: "Logout berhasil",
+      message: "OTP berhasil dikirim",
     });
   } catch (error) {
-    console.error("logoutPengguna error:", error);
+    console.error("REQUEST OTP ERROR:", error);
     return res.status(500).json({
       status: "error",
-      message: "Gagal logout",
+      message: "Gagal mengirim OTP",
     });
   }
 };
 
 /* =====================================================
- * EXPORT
- * ===================================================== */
+   RESET PASSWORD DENGAN OTP
+===================================================== */
+const resetPasswordOtp = async (req, res) => {
+  try {
+    const { email, otp, password_baru } = req.body;
+
+    const rows = await query(
+      `SELECT * FROM reset_password_otp
+       WHERE email = ? AND otp = ? AND expired_at > NOW()
+       LIMIT 1`,
+      [email, otp]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        status: "error",
+        message: "OTP tidak valid atau kadaluarsa",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password_baru, 10);
+
+    await query(
+      "UPDATE pengguna SET password = ? WHERE email = ?",
+      [hashedPassword, email]
+    );
+
+    await query("DELETE FROM reset_password_otp WHERE email = ?", [email]);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password berhasil direset",
+    });
+  } catch (error) {
+    console.error("RESET PASSWORD ERROR:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal reset password",
+    });
+  }
+};
+
 module.exports = {
   registerPengguna,
   loginPengguna,
+  getProfilPengguna,
   editProfilPengguna,
+  changePassword,
   riwayatParkirPengguna,
-  logoutPengguna, // ⬅️ TAMBAHKAN
+  logoutPengguna,
+  requestOtp,
+  resetPasswordOtp,
 };

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type Kendaraan = {
   no?: number;
+  npm: string;
   nama: string;
   plat_motor: string;
   tanggal: string;
@@ -112,6 +113,7 @@ export default function DataKendaraanParkir({
           <thead className="bg-gray-100 text-gray-700">
             <tr>
               <Th>No</Th>
+              <Th>NPM</Th>
               <Th>Nama</Th>
               <Th>Plat Motor</Th>
               <Th>Tanggal</Th>
@@ -125,7 +127,7 @@ export default function DataKendaraanParkir({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="py-4 text-center text-gray-500">
+                <td colSpan={9} className="py-4 text-center text-gray-500">
                   Memuat data...
                 </td>
               </tr>
@@ -133,7 +135,7 @@ export default function DataKendaraanParkir({
 
             {!loading && data.length === 0 && !error && (
               <tr>
-                <td colSpan={8} className="py-4 text-center text-gray-500">
+                <td colSpan={9} className="py-4 text-center text-gray-500">
                   Tidak ada data
                 </td>
               </tr>
@@ -142,11 +144,12 @@ export default function DataKendaraanParkir({
             {!loading &&
               data.map((item, index) => (
                 <tr
-                  key={`${item.nama}-${item.plat_motor}-${index}`}
+                  key={`${item.npm}-${item.tanggal}-${item.masuk}-${index}`}
                   className="border-t text-center transition hover:bg-[#F4F6F8]"
                 >
                   <Td>{item.no ?? index + 1}</Td>
-                  <Td>{item.nama}</Td>
+                  <Td className="font-medium text-gray-600">{item.npm}</Td>
+                  <Td className="font-semibold text-[#1F3A93]">{item.nama}</Td>
                   <Td>{item.plat_motor}</Td>
                   <Td>{item.tanggal}</Td>
                   <Td>{item.hari}</Td>
@@ -187,6 +190,6 @@ function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-3 py-2 font-semibold text-gray-700">{children}</th>;
 }
 
-function Td({ children }: { children: React.ReactNode }) {
-  return <td className="px-3 py-2">{children}</td>;
+function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <td className={`px-3 py-2 ${className}`}>{children}</td>;
 }

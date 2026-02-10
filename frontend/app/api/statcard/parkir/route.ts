@@ -4,16 +4,19 @@ import { NextResponse } from "next/server";
  * GET /api/statcard/parkir
  * Proxy ke Backend Express -> /api/statistik/parkir
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const BACKEND_URL =
-      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+    const { searchParams } = new URL(req.url);
+    const npm = searchParams.get("npm");
 
-    // 🔗 SESUAI DENGAN index.js BACKEND
-    const res = await fetch(`http://localhost:5000/api/statistik/parkir`, {
+    let url = `${process.env.NEXT_PUBLIC_API_URL}/api/statcard/parkir`;
+    if (npm) url += `?npm=${npm}`;
+
+    const res = await fetch(url, {
       method: "GET",
       cache: "no-store", // data real-time
     });
+
 
     // ❌ Backend error
     if (!res.ok) {
@@ -21,7 +24,7 @@ export async function GET() {
       try {
         const errorData = await res.json();
         message = errorData.message || message;
-      } catch {}
+      } catch { }
 
       return NextResponse.json(
         {

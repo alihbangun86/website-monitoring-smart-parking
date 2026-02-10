@@ -33,7 +33,11 @@ export default function InformasiParkirPage() {
   /* ================= STATCARD ================= */
   const fetchStatCard = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/statcard/parkir", {
+      const npm = localStorage.getItem("npm");
+      let url = `${process.env.NEXT_PUBLIC_API_URL}/api/statcard/parkir`;
+      if (npm) url += `?npm=${npm}`;
+
+      const res = await fetch(url, {
         cache: "no-store",
       });
       const result = await res.json();
@@ -46,6 +50,7 @@ export default function InformasiParkirPage() {
     }
   };
 
+
   /* ================= RIWAYAT PARKIR ================= */
   const fetchRiwayatParkir = async () => {
     try {
@@ -57,7 +62,7 @@ export default function InformasiParkirPage() {
       }
 
       const res = await fetch(
-        `http://localhost:5000/api/parkir/riwayat/${npm}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/pengguna/users/riwayat/${npm}`,
         { cache: "no-store" },
       );
 
@@ -72,9 +77,9 @@ export default function InformasiParkirPage() {
           }),
           waktuKeluar: item.waktu_keluar
             ? new Date(item.waktu_keluar).toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : undefined,
           status: item.status_parkir === "MASUK" ? "Masuk" : "Keluar",
         }));
@@ -112,9 +117,8 @@ export default function InformasiParkirPage() {
       <div className="flex items-center gap-3 text-sm">
         <span className="font-semibold text-gray-700">Status Parkir:</span>
         <span
-          className={`rounded px-3 py-1 text-xs font-semibold text-white ${
-            statusParkir === "Penuh" ? "bg-red-600" : "bg-green-600"
-          }`}
+          className={`rounded px-3 py-1 text-xs font-semibold text-white ${statusParkir === "Penuh" ? "bg-red-600" : "bg-green-600"
+            }`}
         >
           {statusParkir}
         </span>

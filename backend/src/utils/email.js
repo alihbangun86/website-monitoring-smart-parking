@@ -1,0 +1,83 @@
+require("dotenv").config();
+
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASS,
+    },
+});
+
+transporter.verify((error) => {
+    if (error) {
+        console.error("Email transporter error:", error);
+    } else {
+        console.log("Email transporter verifikasi ready");
+    }
+});
+
+console.log("EMAIL:", process.env.EMAIL);
+
+
+const sendVerificationEmail = async (toEmail) => {
+    try {
+        // Validasi email
+        if (!toEmail || toEmail.trim() === "") {
+            throw new Error("Email penerima tidak valid atau kosong");
+        }
+
+        console.log("Mengirim email verifikasi ke:", toEmail);
+
+        const info = await transporter.sendMail({
+            from: `"Smart Parking" <${process.env.EMAIL}>`,
+            to: toEmail,
+            subject: "Akun Anda Telah Diverifikasi",
+            html: `
+        <h3>Verifikasi Akun Berhasil</h3>
+        <p>Akun Anda telah diverifikasi oleh admin.</p>
+        <p>Silakan login ke sistem Smart Parking.</p>
+      `,
+        });
+
+        console.log("✅ Email berhasil dikirim:", info.messageId);
+        console.log("📧 Diterima oleh:", info.accepted);
+
+        return info;
+    } catch (error) {
+        console.error("❌ Gagal mengirim email:", error.message);
+        console.error("Detail error:", error);
+        throw error;
+    }
+};
+
+const sendRegistrationPendingEmail = async (toEmail, nama) => {
+    try {
+        if (!toEmail || toEmail.trim() === "") {
+            throw new Error("Email penerima tidak valid atau kosong");
+        }
+
+        console.log("Mengirim email pendaftaran ke:", toEmail);
+
+        const info = await transporter.sendMail({
+            from: `"Smart Parking" <${process.env.EMAIL}>`,
+            to: toEmail,
+            subject: "Pendaftaran Berhasil - Menunggu Verifikasi",
+            html: `
+        <h3>Halo ${nama},</h3>
+        <p>Terima kasih telah mendaftar di sistem Smart Parking.</p>
+        <p>Akun Anda sedang menunggu verifikasi dari admin. Mohon tunggu hingga akun Anda diaktifkan.</p>
+        <p>Anda akan menerima email pemberitahuan setelah akun diverifikasi.</p>
+      `,
+        });
+
+        console.log("✅ Email pendaftaran dikirim:", info.messageId);
+        return info;
+    } catch (error) {
+        console.error("❌ Gagal mengirim email pendaftaran:", error.message);
+        // Jangan throw error agar registrasi tetap sukses walaupun email gagal
+    }
+};
+
+module.exports = { sendVerificationEmail, sendRegistrationPendingEmail };

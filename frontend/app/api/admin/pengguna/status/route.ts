@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BE_URL = "http://localhost:5000/api/admin/verifikasi";
+const BE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/pengguna/verifikasi`;
 
 export async function PUT(req: Request) {
     try {

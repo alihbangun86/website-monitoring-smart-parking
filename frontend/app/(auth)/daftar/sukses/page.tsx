@@ -7,7 +7,7 @@ export default function DaftarSuksesPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#E9EBEE] px-4">
       <div className="w-full max-w-md rounded-xl border border-[#1F3A93] bg-white p-6 text-center shadow-sm">
-        {/* ICON / LOGO */}
+        {/* LOGO */}
         <div className="mb-4 flex justify-center">
           <Image
             src="/logo-unila.png"
@@ -30,14 +30,14 @@ export default function DaftarSuksesPage() {
         </p>
 
         <div className="mb-5 rounded-lg bg-[#E9EBEE] p-3 text-xs text-gray-700">
-          Apabila akun Anda telah disetujui (ACC) oleh admin, informasi akun dan
-          akses login akan dikirimkan melalui email yang telah Anda daftarkan.
+          Setelah akun Anda disetujui (ACC) oleh admin, Anda dapat langsung
+          masuk menggunakan akun yang telah didaftarkan.
         </div>
 
-        {/* ACTION */}
+        {/* BUTTON KE ROOT (HALAMAN MASUK) */}
         <Link
           href="/"
-          className="inline-block rounded-lg bg-[#1F3A93] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#162C6E]"
+          className="inline-block w-full rounded-lg bg-[#1F3A93] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#162C6E]"
         >
           Kembali ke Halaman Masuk
         </Link>

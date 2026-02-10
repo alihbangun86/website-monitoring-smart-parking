@@ -7,7 +7,7 @@ export async function GET(req: Request) {
     const from = searchParams.get("from");
     const to = searchParams.get("to");
 
-    let url = `http://localhost:5000/api/admin/parkir/export/pdf?periode=${periode}`;
+    let url = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/parkir/export/pdf?periode=${periode}`;
 
     if (from && to) {
         url += `&from=${from}&to=${to}`;

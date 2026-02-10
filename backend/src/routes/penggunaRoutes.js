@@ -1,70 +1,61 @@
 const express = require("express");
 const router = express.Router();
 
-// ================= IMPORT CONTROLLER =================
 const {
-  registerPengguna,
-  loginPengguna,
-  editProfilPengguna,
-  riwayatParkirPengguna,
-  logoutPengguna, // ⬅️ TAMBAHKAN INI
+   registerPengguna,
+   loginPengguna,
+   editProfilPengguna,
+   riwayatParkirPengguna,
+   logoutPengguna,
+   requestOtp,
+   resetPasswordOtp,
+   getProfilPengguna,
+   changePassword,
 } = require("../controllers/penggunaController");
 
-// ====================================================
-// ROUTES PENGGUNA
-// Base path: /api
-// ====================================================
+const upload = require("../utils/upload");
 
-/**
- * ====================================================
- * KF-01 & KF-04
- * Registrasi pengguna + data kendaraan
- * POST /api/register
- * ====================================================
- */
-router.post("/register", registerPengguna);
+/* ====================================================
+   AUTH ROUTES
+==================================================== */
 
-/**
- * ====================================================
- * KF-02
- * Login pengguna
- * POST /api/login
- * ====================================================
- */
-router.post("/login", loginPengguna);
+// REGISTER
+router.post("/auth/register", upload.single("stnk"), registerPengguna);
 
-/**
- * ====================================================
- * KF-03
- * Logout pengguna
- * POST /api/logout
- * ====================================================
- */
-router.post("/logout", logoutPengguna);
+// LOGIN
+router.post("/auth/login", loginPengguna);
 
-/**
- * ====================================================
- * KF-13
- * Edit profil pengguna
- * PUT /api/profil
- * Body: { npm, nama, email, ... }
- * ====================================================
- */
-router.put("/profil", editProfilPengguna);
+// LOGOUT
+router.post("/auth/logout", logoutPengguna);
 
-/**
- * ====================================================
- * KF-14
- * Riwayat parkir pengguna
- * GET /api/parkir/riwayat/:npm
- *
- * NOTE:
- * - npm dikirim dari FE (login user)
- * - Siap di-upgrade ke JWT (npm dari token)
- * ====================================================
- */
-router.get("/parkir/riwayat/:npm", riwayatParkirPengguna);
+// REQUEST OTP
+router.post("/auth/request-otp", requestOtp);
 
-// ====================================================
+// RESET PASSWORD (OTP)
+router.post("/auth/reset-password", resetPasswordOtp);
+
+/* ====================================================
+   USER ROUTES
+==================================================== */
+
+// GET PROFIL
+router.get("/users/profile/:npm", getProfilPengguna);
+
+// UPDATE PROFIL
+router.put(
+   "/users/profile",
+   upload.fields([
+      { name: "foto", maxCount: 1 },
+      { name: "stnk", maxCount: 1 },
+   ]),
+   editProfilPengguna
+);
+
+
+// RIWAYAT PARKIR
+router.get("/users/riwayat/:npm", riwayatParkirPengguna);
+
+// CHANGE PASSWORD (langsung tanpa OTP - untuk halaman profil)
+router.post("/users/change-password", changePassword);
 
 module.exports = router;

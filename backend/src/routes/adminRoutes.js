@@ -3,97 +3,72 @@ const router = express.Router();
 
 const {
   loginAdmin,
-  verifikasiPengguna,   // update status_akun (hak parkir)
-  getDataPengguna,      // 🔥 LIST PENGGUNA
+  verifikasiPengguna,
+  getDataPengguna,
   generateRFID,
   dashboardSummary,
   getDataParkir,
   exportParkirPDF,
+  hapusPengguna,
+  updateKuotaParkir,
 } = require("../controllers/adminController");
 
 /**
- * =========================
+ * ====================================================
  * AUTH ADMIN
- * =========================
+ * Base: /api/admin
+ * ====================================================
  */
 
 // LOGIN ADMIN
 router.post("/login", loginAdmin);
 
 /**
- * =========================
+ * ====================================================
  * MANAJEMEN PENGGUNA
- * =========================
- * status_akun:
- * 1 = boleh parkir
- * 0 = diblokir parkir
- * null = menunggu validasi
+ * ====================================================
  */
 
-// 🔥 AMBIL SEMUA DATA PENGGUNA
+// GET semua pengguna
 router.get("/pengguna", getDataPengguna);
 
-// 🔥 AKTIFKAN / BLOKIR HAK PARKIR
-router.put("/pengguna/status", verifikasiPengguna);
+// VERIFIKASI / AKTIVASI AKUN (kirim email)
+router.put("/pengguna/verifikasi", verifikasiPengguna);
 
-// 🔥 HAPUS PENGGUNA
-router.delete("/pengguna/:npm", async (req, res) => {
-  try {
-    const { npm } = req.params;
+// HAPUS PENGGUNA
+router.delete("/pengguna/:npm", hapusPengguna);
 
-    const result = await require("../config/database").query(
-      "DELETE FROM pengguna WHERE npm = ?",
-      [npm]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "Pengguna tidak ditemukan",
-      });
-    }
-
-    res.json({
-      status: "success",
-      message: "Pengguna berhasil dihapus",
-    });
-  } catch (err) {
-    console.error("DELETE USER:", err);
-    res.status(500).json({
-      status: "error",
-      message: "Gagal menghapus pengguna",
-    });
-  }
-});
+// UPDATE KUOTA (INDIVIDU / GLOBAL)
+router.put("/kuota", updateKuotaParkir);
 
 /**
- * =========================
+ * ====================================================
  * RFID
- * =========================
+ * ====================================================
  */
 
-// GENERATE RFID
-router.post("/rfid", generateRFID);
+// GENERATE RFID untuk kendaraan
+router.post("/rfid/generate", generateRFID);
 
 /**
- * =========================
- * DASHBOARD ADMIN
- * =========================
+ * ====================================================
+ * DASHBOARD
+ * ====================================================
  */
 
 // SUMMARY DASHBOARD
 router.get("/dashboard/summary", dashboardSummary);
 
 /**
- * =========================
+ * ====================================================
  * DATA PARKIR
- * =========================
+ * ====================================================
  */
 
-// TABEL DATA PARKIR
+// LIST DATA PARKIR
 router.get("/parkir", getDataParkir);
 
-// EXPORT DATA PARKIR KE PDF
+// EXPORT PDF
 router.get("/parkir/export/pdf", exportParkirPDF);
 
 module.exports = router;

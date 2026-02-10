@@ -23,16 +23,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Endpoint logic
       const isMahasiswa = /^\d+$/.test(identifier);
 
-      // Endpoint backend Express
-      const endpoint = isMahasiswa
-        ? "http://localhost:5000/api/login"
-        : "http://localhost:5000/api/admin/login";
+      let endpoint = "";
+      let payload = {};
 
-      const payload = isMahasiswa
-        ? { npm: identifier, password }
-        : { nama: identifier, password };
+      if (isMahasiswa) {
+        // MAHASISWA LOGIN via Next.js API Route
+        endpoint = "/api/auth/login";
+        payload = { npm: identifier, password };
+      } else {
+        // ADMIN LOGIN via Backend Direct
+        endpoint = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/login`;
+        payload = { nama: identifier, password };
+      }
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -50,11 +55,17 @@ export default function LoginPage() {
       }
 
       if (isMahasiswa) {
-        // ✅ SIMPAN NPM UNTUK DIGUNAKAN HALAMAN LAIN
-        localStorage.setItem("npm", data.data.npm);
-
+        // ✅ SIMPAN NPM UNTUK MAHASISWA
+        // Perhatikan structure data yang dikembalikan oleh route handler /api/auth/login
+        if (data.data && data.data.npm) {
+          localStorage.setItem("npm", data.data.npm);
+        }
         router.push("/mahasiswa");
       } else {
+        // ✅ SIMPAN TOKEN / DATA UNTUK ADMIN
+        if (data.data && data.data.nama) {
+          localStorage.setItem("admin_nama", data.data.nama);
+        }
         router.push("/admin");
       }
     } catch (error) {

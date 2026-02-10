@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     // 🔹 panggil backend Express (controller JS)
     const res = await fetch(
-      `${process.env.BACKEND_URL}/pengguna/riwayat/${npm}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/pengguna/users/riwayat/${npm}`,
       {
         cache: "no-store",
       },

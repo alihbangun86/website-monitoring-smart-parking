@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     // ✅ FETCH KE BACKEND EXPRESS (AMBIL DATA DB)
     const res = await fetch(
-      `http://localhost:5000/api/statistik/kendaraan?periode=${periode}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/statistik/kendaraan?periode=${periode}`,
       {
         method: "GET",
         cache: "no-store", // WAJIB: biar data selalu update
