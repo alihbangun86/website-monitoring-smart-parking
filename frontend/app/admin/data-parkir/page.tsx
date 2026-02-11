@@ -74,13 +74,13 @@ export default function DataParkirAdminPage() {
           {/* SEARCH */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-700">
-              Cari Nama / Plat Motor
+              Cari Nama / Nomor Kendaraan
             </label>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari Nama / Plat Motor"
+              placeholder="Cari Nama / Nomor Kendaraan"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm
                 focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
             />

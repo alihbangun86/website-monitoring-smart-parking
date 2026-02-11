@@ -149,7 +149,7 @@ const getProfilPengguna = async (req, res) => {
     const { npm } = req.params;
 
     const rows = await query(
-      `SELECT p.npm, p.nama, p.email, p.jurusan, p.prodi, p.foto, p.status_akun,
+      `SELECT p.npm, p.nama, p.email, p.jurusan, p.prodi, p.angkatan, p.foto, p.status_akun,
               k.id_kendaraan, k.plat_nomor, k.stnk,
               r.kode_rfid,
               COALESCE(
@@ -196,7 +196,7 @@ const getProfilPengguna = async (req, res) => {
 const editProfilPengguna = async (req, res) => {
   try {
     console.log("📥 UPDATE PROFIL REQUEST:", req.body);
-    const { npm, jurusan, prodi, plat_nomor } = req.body;
+    const { npm, jurusan, prodi, plat_nomor, angkatan } = req.body;
 
     // Ambil file jika ada (menggunakan upload.fields)
     const foto = req.files?.["foto"] ? req.files["foto"][0].filename : null;
@@ -214,13 +214,13 @@ const editProfilPengguna = async (req, res) => {
     // Update data di tabel pengguna
     if (foto) {
       await query(
-        "UPDATE pengguna SET jurusan = ?, prodi = ?, foto = ? WHERE npm = ?",
-        [jurusan, prodi, foto, trimmedNpm]
+        "UPDATE pengguna SET jurusan = ?, prodi = ?, angkatan = ?, foto = ? WHERE npm = ?",
+        [jurusan, prodi, angkatan, foto, trimmedNpm]
       );
     } else {
       await query(
-        "UPDATE pengguna SET jurusan = ?, prodi = ? WHERE npm = ?",
-        [jurusan, prodi, trimmedNpm]
+        "UPDATE pengguna SET jurusan = ?, prodi = ?, angkatan = ? WHERE npm = ?",
+        [jurusan, prodi, angkatan, trimmedNpm]
       );
     }
 

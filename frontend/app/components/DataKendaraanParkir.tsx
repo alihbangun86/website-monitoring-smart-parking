@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 type Kendaraan = {
   no?: number;
@@ -26,9 +27,18 @@ export default function DataKendaraanParkir({
   endDate = "",
 }: Props = {}) {
   const [data, setData] = useState<Kendaraan[]>([]);
-  const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Pagination State
+  const [limit, setLimit] = useState(10);
+  const [page, setPage] = useState(1);
+  const [totalData, setTotalData] = useState(0);
+
+  // Reset page ke 1 jika filter berubah
+  useEffect(() => {
+    setPage(1);
+  }, [search, startDate, endDate, limit]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -38,9 +48,12 @@ export default function DataKendaraanParkir({
         setLoading(true);
         setError("");
 
+        // Hitung offset berdasarkan page & limit
+        const offset = (page - 1) * limit;
+
         const params = new URLSearchParams({
           limit: String(limit),
-          offset: "0",
+          offset: String(offset),
         });
 
         if (search) params.append("search", search);
@@ -61,10 +74,12 @@ export default function DataKendaraanParkir({
 
         const json = await res.json();
 
-        if (json.status === "success" && Array.isArray(json.data)) {
-          setData(json.data);
+        if (json.status === "success") {
+          setData(json.data || []);
+          setTotalData(json.total || 0); // Ambil total data dari backend
         } else {
           setData([]);
+          setTotalData(0);
         }
       } catch (err: any) {
         if (err.name !== "AbortError") {
@@ -80,12 +95,24 @@ export default function DataKendaraanParkir({
     fetchData();
 
     return () => controller.abort();
-  }, [limit, search, startDate, endDate]);
+  }, [limit, page, search, startDate, endDate]);
+
+  // Hitung total halaman
+  const totalPages = Math.ceil(totalData / limit);
+
+  // Generate range halaman (misal 1 2 3)
+  const getPageNumbers = () => {
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
 
   return (
-    <section className="rounded-xl bg-[#E9EBEE] p-6 shadow-sm">
+    <section className="rounded-xl bg-[#E9EBEE] p-6 shadow-sm border border-gray-200">
       {/* ===== HEADER ===== */}
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
         <h2 className="text-sm font-semibold text-gray-800">
           Data Kendaraan Parkir
         </h2>
@@ -94,28 +121,31 @@ export default function DataKendaraanParkir({
           <span className="text-gray-600">Tampilkan</span>
           <select
             value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
+            onChange={(e) => {
+              setLimit(Number(e.target.value));
+              setPage(1); // Reset page saat limit berubah
+            }}
             className="rounded-md border border-gray-300 px-2 py-1
               focus:border-[#1F3A93] focus:outline-none"
           >
             <option value={10}>10</option>
-            <option value={25}>25</option>
+            <option value={20}>20</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
           </select>
-          <span className="text-gray-600">data</span>
+          <span className="text-gray-600">data per halaman</span>
         </div>
       </div>
 
       {/* ===== TABLE ===== */}
-      <div className="overflow-x-auto rounded-lg bg-white">
-        <table className="w-full border-collapse text-xs">
+      <div className="overflow-x-auto rounded-lg bg-white border border-gray-200">
+        <table className="w-full border-collapse text-xs min-w-[900px]">
           <thead className="bg-gray-100 text-gray-700">
             <tr>
               <Th>No</Th>
               <Th>NPM</Th>
               <Th>Nama</Th>
-              <Th>Plat Motor</Th>
+              <Th>Nomor Kendaraan</Th>
               <Th>Tanggal</Th>
               <Th>Hari</Th>
               <Th>Masuk</Th>
@@ -127,16 +157,16 @@ export default function DataKendaraanParkir({
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="py-4 text-center text-gray-500">
-                  Memuat data...
+                <td colSpan={9} className="py-8 text-center text-gray-500">
+                  Memuat data parkir...
                 </td>
               </tr>
             )}
 
             {!loading && data.length === 0 && !error && (
               <tr>
-                <td colSpan={9} className="py-4 text-center text-gray-500">
-                  Tidak ada data
+                <td colSpan={9} className="py-8 text-center text-gray-500">
+                  Tidak ada data kendaraan yang ditemukan
                 </td>
               </tr>
             )}
@@ -147,7 +177,8 @@ export default function DataKendaraanParkir({
                   key={`${item.npm}-${item.tanggal}-${item.masuk}-${index}`}
                   className="border-t text-center transition hover:bg-[#F4F6F8]"
                 >
-                  <Td>{item.no ?? index + 1}</Td>
+                  {/* Perhitungan No: (page - 1) * limit + index + 1 */}
+                  <Td className="text-gray-500">{(page - 1) * limit + index + 1}</Td>
                   <Td className="font-medium text-gray-600">{item.npm}</Td>
                   <Td className="font-semibold text-[#1F3A93]">{item.nama}</Td>
                   <Td>{item.plat_motor}</Td>
@@ -157,7 +188,7 @@ export default function DataKendaraanParkir({
                   <Td>{item.keluar}</Td>
                   <Td>
                     <span
-                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${item.status === "Terparkir"
+                      className={`rounded-full px-2 md:px-3 py-1 text-[10px] md:text-[11px] font-semibold whitespace-nowrap ${item.status === "Terparkir"
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-200 text-gray-600"
                         }`}
@@ -171,15 +202,81 @@ export default function DataKendaraanParkir({
         </table>
       </div>
 
-      {/* ===== INFO / ERROR ===== */}
-      {!loading && !error && (
-        <div className="mt-3 text-xs text-gray-600">
-          Menampilkan {data.length} data
+      {/* ===== INFO & PAGINATION ===== */}
+      {!loading && !error && data.length > 0 && (
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-600 border-t border-gray-300 pt-4">
+
+          {/* Info Data */}
+          <div>
+            Menampilkan <span className="font-semibold">{(page - 1) * limit + 1}</span> -{" "}
+            <span className="font-semibold">{Math.min(page * limit, totalData)}</span> dari{" "}
+            <span className="font-semibold">{totalData}</span> data
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(1)}
+              disabled={page === 1}
+              className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
+              title="Halaman Pertama"
+            >
+              <ChevronsLeft size={16} />
+            </button>
+
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            {/* Clickable Page Numbers */}
+            <div className="hidden sm:flex items-center gap-1 mx-1">
+              {getPageNumbers().map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPage(num)}
+                  className={`w-7 h-7 rounded flex items-center justify-center font-medium transition ${page === num
+                    ? "bg-[#1F3A93] text-white"
+                    : "hover:bg-white text-gray-700"
+                    }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Indicator */}
+            <span className="sm:hidden mx-2 font-medium text-gray-800">
+              {page} / {totalPages || 1}
+            </span>
+
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
+              title="Halaman Selanjutnya"
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            <button
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+              className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
+              title="Halaman Terakhir"
+            >
+              <ChevronsRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
       {error && (
-        <div className="mt-3 text-xs text-red-500">{error}</div>
+        <div className="mt-3 text-xs text-red-500 px-1">{error}</div>
       )}
     </section>
   );

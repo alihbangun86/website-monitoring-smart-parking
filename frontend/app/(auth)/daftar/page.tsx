@@ -99,7 +99,8 @@ export default function DaftarPage() {
       !form.jurusan ||
       !form.prodi ||
       !form.password ||
-      !form.plat_nomor
+      !form.plat_nomor ||
+      !stnk
     ) {
       setError("Semua field wajib diisi");
       return;
@@ -159,11 +160,12 @@ export default function DaftarPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          <Input name="nama" placeholder="Nama Lengkap" value={form.nama} onChange={handleChange} />
-          <Input name="npm" placeholder="NPM" value={form.npm} onChange={handleChange} />
-          <Input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
+          <Input required name="nama" placeholder="Nama Lengkap" value={form.nama} onChange={handleChange} />
+          <Input required name="npm" placeholder="NPM" value={form.npm} onChange={handleChange} />
+          <Input required name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} />
 
           <Select
+            required
             name="jurusan"
             value={form.jurusan}
             onChange={handleChange}
@@ -172,6 +174,7 @@ export default function DaftarPage() {
           />
 
           <Select
+            required
             name="prodi"
             value={form.prodi}
             onChange={handleChange}
@@ -180,16 +183,17 @@ export default function DaftarPage() {
             disabled={!form.jurusan}
           />
 
-          <Input name="plat_nomor" placeholder="Plat Nomor" value={form.plat_nomor} onChange={handleChange} />
-          <Input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} />
+          <Input required name="plat_nomor" placeholder="Nomor Kendaraan" value={form.plat_nomor} onChange={handleChange} />
+          <Input required name="password" type="password" placeholder="Kata Sandi" value={form.password} onChange={handleChange} />
 
           {/* FILE UPLOAD */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-700">
-              Upload Foto / Scan STNK
+              Upload Foto / Scan STNK <span className="text-red-500">*</span>
             </label>
 
             <input
+              required
               type="file"
               accept="image/*,.pdf"
               onChange={handleFileChange}
@@ -238,9 +242,10 @@ export default function DaftarPage() {
 
 /* ================= COMPONENT ================= */
 
-function Input({ name, type = "text", placeholder, value, onChange }: any) {
+function Input({ name, type = "text", placeholder, value, onChange, required }: any) {
   return (
     <input
+      required={required}
       name={name}
       type={type}
       value={value}
@@ -251,9 +256,10 @@ function Input({ name, type = "text", placeholder, value, onChange }: any) {
   );
 }
 
-function Select({ name, value, onChange, options, placeholder, disabled = false }: any) {
+function Select({ name, value, onChange, options, placeholder, disabled = false, required }: any) {
   return (
     <select
+      required={required}
       name={name}
       value={value}
       onChange={onChange}

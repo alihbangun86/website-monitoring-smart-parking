@@ -18,6 +18,7 @@ export default function AdminDashboardPage() {
     terisi: 0,
     tersedia: 0,
     pengguna_aktif: 0,
+
   });
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -59,6 +60,8 @@ export default function AdminDashboardPage() {
     return () => controller.abort();
   }, []);
 
+
+
   if (loading) {
     return (
       <div className="p-6 text-sm text-gray-600">Loading dashboard...</div>
@@ -70,25 +73,23 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="flex gap-6">
-      {/* Sidebar & Navbar ditangani oleh admin/layout.tsx */}
-      <div className="flex-1 space-y-6">
-        {/* ================= STAT CARD ================= */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Slot" value={summary.total_slot} />
-          <StatCard title="Terisi" value={summary.terisi} />
-          <StatCard title="Tersedia" value={summary.tersedia} />
-          <StatCard title="Pengguna Aktif" value={summary.pengguna_aktif} />
-        </div>
+    <div className="space-y-4 md:space-y-6">
+      {/* ================= STAT CARD ================= */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+        <StatCard title="Total Slot" value={summary.total_slot} />
+        <StatCard title="Terisi" value={summary.terisi} />
+        <StatCard title="Tersedia" value={summary.tersedia} />
+        <StatCard title="Pengguna Aktif" value={summary.pengguna_aktif} />
 
-        {/* ================= STATISTIK ================= */}
-        <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-5">
-          <StatistikKendaraan />
-        </div>
-
-        {/* ================= DATA PARKIR ================= */}
-        <DataKendaraanParkir />
       </div>
+
+      {/* ================= STATISTIK ================= */}
+      <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-4 md:p-6">
+        <StatistikKendaraan />
+      </div>
+
+      {/* ================= DATA PARKIR ================= */}
+      <DataKendaraanParkir />
     </div>
   );
 }

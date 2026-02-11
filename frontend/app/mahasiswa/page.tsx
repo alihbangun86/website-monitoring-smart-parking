@@ -45,12 +45,12 @@ export default function MahasiswaHomePage() {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* ================= HEADER ================= */}
-      <h2 className="text-lg font-semibold text-gray-800">Dashboard Parkir</h2>
+      <h2 className="text-base md:text-lg font-semibold text-gray-800">Dashboard Parkir</h2>
 
       {/* ================= STATCARD ================= */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
         <StatCard
           title="Terisi"
           value={statcard.terisi}
@@ -66,7 +66,7 @@ export default function MahasiswaHomePage() {
         <StatCard
           title="Kesempatan Parkir"
           value={statcard.kesempatan_parkir}
-          unit="Slot"
+          unit="Kali"
           loading={loading}
         />
       </section>

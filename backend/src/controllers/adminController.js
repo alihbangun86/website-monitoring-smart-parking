@@ -106,6 +106,36 @@ const verifikasiPengguna = async (req, res) => {
 ===================================================== */
 const getDataPengguna = async (req, res) => {
   try {
+    const { search, limit, offset, status } = req.query;
+    const safeLimit = parseInt(limit) || 10;
+    const safeOffset = parseInt(offset) || 0;
+
+    let whereClauses = [];
+    let params = [];
+
+    if (search) {
+      whereClauses.push("(p.nama LIKE ? OR p.npm LIKE ? OR k.plat_nomor LIKE ?)");
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (status) {
+      whereClauses.push("p.status_akun = ?");
+      params.push(status);
+    }
+
+    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+
+    // 1️⃣ Hitung total (untuk pagination)
+    const [countResult] = await query(`
+      SELECT COUNT(*) as total
+      FROM pengguna p
+      LEFT JOIN kendaraan k ON p.npm = k.npm
+      ${whereSql}
+    `, params);
+
+    const totalData = countResult ? countResult.total : 0;
+
+    // 2️⃣ Ambil data paginasi
     const rows = await query(`
       SELECT 
         p.npm,
@@ -128,13 +158,15 @@ const getDataPengguna = async (req, res) => {
         ) AS sisa_kuota
       FROM pengguna p
       LEFT JOIN kendaraan k ON p.npm = k.npm
+      ${whereSql}
       ORDER BY p.nama ASC
-    `);
-
+      LIMIT ? OFFSET ?
+    `, [...params, safeLimit, safeOffset]);
 
     return res.status(200).json({
       status: "success",
       data: rows,
+      total: totalData,
     });
   } catch (err) {
     console.error("getDataPengguna:", err);
@@ -148,6 +180,9 @@ const getDataPengguna = async (req, res) => {
 /* =====================================================
    HAPUS PENGGUNA
 ===================================================== */
+/* =====================================================
+   HAPUS PENGGUNA (CASCADE MANUAL)
+===================================================== */
 const hapusPengguna = async (req, res) => {
   try {
     const { npm } = req.params;
@@ -159,10 +194,26 @@ const hapusPengguna = async (req, res) => {
       });
     }
 
-    const result = await query(
-      "DELETE FROM pengguna WHERE npm = ?",
+    // 1. Hapus Log Parkir (Linked to Kendaraan)
+    await query(
+      "DELETE FROM log_parkir WHERE id_kendaraan IN (SELECT id_kendaraan FROM kendaraan WHERE npm = ?)",
       [npm]
     );
+
+    // 2. Hapus RFID (Linked to Kendaraan)
+    await query(
+      "DELETE FROM rfid WHERE id_kendaraan IN (SELECT id_kendaraan FROM kendaraan WHERE npm = ?)",
+      [npm]
+    );
+
+    // 3. Hapus Kendaraan
+    await query("DELETE FROM kendaraan WHERE npm = ?", [npm]);
+
+    // 4. Hapus Kuota Parkir Khusus
+    await query("DELETE FROM kuota_parkir WHERE npm = ?", [npm]);
+
+    // 5. Akhirnya Hapus Pengguna
+    const result = await query("DELETE FROM pengguna WHERE npm = ?", [npm]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -173,7 +224,7 @@ const hapusPengguna = async (req, res) => {
 
     return res.status(200).json({
       status: "success",
-      message: "Pengguna berhasil dihapus",
+      message: "Pengguna dan data terkait berhasil dihapus",
     });
 
   } catch (err) {
@@ -269,10 +320,11 @@ const generateRFID = async (req, res) => {
 ===================================================== */
 const dashboardSummary = async (req, res) => {
   try {
-    const [[slot], [terisi], [aktif]] = await Promise.all([
+    const [[slot], [terisi], [aktif], [kuota]] = await Promise.all([
       query("SELECT COALESCE(SUM(jumlah),0) AS total FROM slot_parkir"),
       query("SELECT COUNT(*) AS total FROM log_parkir WHERE status_parkir='MASUK'"),
       query("SELECT COUNT(*) AS total FROM pengguna WHERE status_akun=1"),
+      query("SELECT batas_parkir FROM kuota_parkir WHERE npm IS NULL ORDER BY id_kuota DESC LIMIT 1"),
     ]);
 
     return res.status(200).json({
@@ -282,6 +334,7 @@ const dashboardSummary = async (req, res) => {
         terisi: terisi.total,
         tersedia: slot.total - terisi.total,
         pengguna_aktif: aktif.total,
+        kuota_global: kuota ? kuota.batas_parkir : 0,
       },
     });
 
@@ -300,7 +353,7 @@ const dashboardSummary = async (req, res) => {
 const getDataParkir = async (req, res) => {
   try {
     const { search, start, end, limit, offset } = req.query;
-    const safeLimit = parseInt(limit) || 10;
+    const safeLimit = parseInt(limit) || 30;
     const safeOffset = parseInt(offset) || 0;
 
     let whereClauses = [];
@@ -323,6 +376,18 @@ const getDataParkir = async (req, res) => {
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
+    // 1️⃣ HITUNG TOTAL DATA (UNTUK PAGINATION)
+    const [countResult] = await query(`
+      SELECT COUNT(*) as total
+      FROM log_parkir l
+      LEFT JOIN kendaraan k ON l.id_kendaraan = k.id_kendaraan
+      LEFT JOIN pengguna p ON k.npm = p.npm
+      ${whereSql}
+    `, params);
+
+    const totalData = countResult ? countResult.total : 0;
+
+    // 2️⃣ AMBIL DATA HALAMAN INI
     const rows = await query(`
       SELECT 
         p.npm,
@@ -360,6 +425,7 @@ const getDataParkir = async (req, res) => {
     return res.status(200).json({
       status: "success",
       data: formattedData,
+      total: totalData,
     });
   } catch (err) {
     console.error("getDataParkir:", err);

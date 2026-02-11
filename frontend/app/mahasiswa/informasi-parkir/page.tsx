@@ -145,7 +145,7 @@ export default function InformasiParkirPage() {
           <StatCard
             title="Kesempatan Parkir"
             value={statcard.kesempatan_parkir}
-            unit="Slot"
+            unit="Kali"
           />
         </div>
       </section>

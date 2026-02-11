@@ -75,15 +75,15 @@ export default function StatistikKendaraan({
   };
 
   return (
-    <div className="rounded-lg bg-gray-200 p-4">
+    <div className="rounded-lg bg-gray-200 p-3 md:p-4">
       {/* HEADER */}
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Statistik Kendaraan</h3>
+      <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <h3 className="text-xs md:text-sm font-semibold">Statistik Kendaraan</h3>
 
         <select
           value={periode}
           onChange={(e) => setPeriode(e.target.value as Periode)}
-          className="rounded border px-2 py-1 text-xs"
+          className="rounded border px-2 py-1 text-xs w-full sm:w-auto"
         >
           <option value="harian">Harian (Per Jam)</option>
           <option value="mingguan">Mingguan</option>
@@ -92,7 +92,7 @@ export default function StatistikKendaraan({
       </div>
 
       {/* CONTENT */}
-      <div className="h-[320px]">
+      <div className="h-[250px] md:h-[320px]">
         {loading && (
           <p className="text-center text-xs text-gray-500">
             Memuat data statistik...

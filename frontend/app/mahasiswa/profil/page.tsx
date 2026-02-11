@@ -105,6 +105,7 @@ export default function ProfilMahasiswaPage() {
     formData.append("npm", profil.npm);
     formData.append("jurusan", profil.jurusan);
     formData.append("prodi", profil.prodi);
+    formData.append("angkatan", profil.angkatan);
     formData.append("plat_nomor", profil.plat_nomor);
     if (fotoFile) formData.append("foto", fotoFile);
 
@@ -130,12 +131,16 @@ export default function ProfilMahasiswaPage() {
       {/* ================= HEADER ================= */}
       <div className="flex flex-col items-center gap-4 pb-6">
 
-        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full border-1 border-[#1F3A93] overflow-hidden bg-white">
+        <div
+          className="rounded-full border-2 border-[#1F3A93] overflow-hidden bg-white flex-shrink-0"
+          style={{ width: '114px', height: '114px', minWidth: '114px', minHeight: '114px', maxWidth: '114px', maxHeight: '114px' }}
+        >
           {previewFoto ? (
             <img
               src={previewFoto}
               alt="Foto Profil"
-              className="h-full w-full object-cover"
+              className="object-cover"
+              style={{ width: '114px', height: '114px' }}
             />
           ) : (
             <div className="h-full w-full bg-gray-200" />
@@ -182,11 +187,18 @@ export default function ProfilMahasiswaPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Nama Lengkap" value={profil.nama} disabled />
           <Field label="NPM" value={profil.npm} disabled />
+
           <Field label="Email" value={profil.email} disabled />
           <Field label="Nomor Kendaraan" value={profil.plat_nomor} disabled />
+          <Field
+            label="Angkatan"
+            name="angkatan"
+            value={profil.angkatan || ""}
+            onChange={handleChange}
+          />
 
           <Select
-            label="Fakultas / Jurusan"
+            label="Jurusan"
             name="jurusan"
             value={profil.jurusan}
             onChange={handleChange}

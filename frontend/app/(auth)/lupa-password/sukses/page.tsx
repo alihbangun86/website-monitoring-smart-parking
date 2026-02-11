@@ -12,18 +12,18 @@ export default function LupaPasswordSuksesPage() {
         </div>
 
         <h2 className="mb-3 text-lg font-semibold text-[#1F3A93]">
-          Password Berhasil Diubah
+          Kata Sandi Berhasil Diubah
         </h2>
 
         <p className="mb-5 text-sm text-gray-600">
-          Silakan login kembali menggunakan password baru Anda.
+          Silakan Masuk kembali menggunakan kata sandi baru Anda.
         </p>
 
         <Link
           href="/"
           className="inline-block w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E]"
         >
-          Kembali ke Login
+          Kembali ke Masuk
         </Link>
       </div>
     </div>

@@ -8,18 +8,18 @@ export default function PenggunaParkirAdminPage() {
   const [statusFilter, setStatusFilter] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* ================= SEARCH & FILTER ================= */}
-      <section className="rounded-xl bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold text-gray-800">
+      <section className="rounded-xl bg-white p-3 md:p-5 shadow-sm">
+        <h3 className="mb-3 md:mb-4 text-xs md:text-sm font-semibold text-gray-800">
           Pencarian & Filter Pengguna
         </h3>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
           {/* SEARCH */}
           <input
             type="text"
-            placeholder="Cari Nama / NPM / No Kendaraan"
+            placeholder="Cari Nama / NPM / Nomor Kendaraan"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="rounded-md border border-gray-300 px-3 py-2 text-xs transition

@@ -24,7 +24,7 @@ export default function ResetPasswordPage() {
     }
 
     if (password !== confirm) {
-      setError("Password tidak sama");
+      setError("Kata Sandi tidak sama");
       return;
     }
 
@@ -52,7 +52,7 @@ export default function ResetPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Gagal reset password");
+        throw new Error(data.message || "Gagal reset Kata Sandi");
       }
 
       // Hapus email dari session setelah sukses
@@ -60,7 +60,7 @@ export default function ResetPasswordPage() {
 
       router.push("/lupa-password/sukses");
     } catch (err: any) {
-      setError(err.message || "Gagal reset password");
+      setError(err.message || "Gagal reset Kata Sandi");
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="password"
-            placeholder="Password Baru"
+            placeholder="Kata Sandi Baru"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
 
           <input
             type="password"
-            placeholder="Konfirmasi Password"
+            placeholder="Konfirmasi Kata Sandi"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
             disabled={loading}
             className="w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E] disabled:opacity-60"
           >
-            {loading ? "Menyimpan..." : "Simpan Password"}
+            {loading ? "Menyimpan..." : "Simpan Kata Sandi"}
           </button>
         </form>
 

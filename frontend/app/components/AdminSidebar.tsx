@@ -32,7 +32,8 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-[#E9EBEE] p-4">
+    // SIDEBAR HANYA MUNCUL DI DISPLAY BESAR (LG 1024px KE ATAS)
+    <aside className="hidden md:block w-64 bg-[#E9EBEE] p-4 h-screen sticky top-0">
       {/* ===== MENU ===== */}
       <nav className="space-y-2">
         <SidebarItem

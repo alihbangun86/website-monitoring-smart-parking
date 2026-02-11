@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Info, BarChart3 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
@@ -10,7 +10,9 @@ export default function Navbar() {
   const router = useRouter();
 
   const isActive = (path: string) =>
-    pathname === path ? "font-semibold underline" : "";
+    pathname === path
+      ? "font-semibold text-[#1F3A93] bg-blue-50/50 rounded-md"
+      : "text-gray-700 hover:bg-gray-100 hover:text-[#1F3A93] rounded-md";
 
   const handleLogout = async () => {
     try {
@@ -29,8 +31,13 @@ export default function Navbar() {
     }
   };
 
+  const navLinks = [
+    { href: "/mahasiswa/informasi-parkir", label: "Informasi Parkir", icon: <Info size={16} /> },
+    { href: "/mahasiswa/statistik-kendaraan", label: "Statistik Kendaraan", icon: <BarChart3 size={16} /> },
+  ];
+
   return (
-    <nav className="w-full border-b border-gray-300 bg-[#1F3A93] text-white">
+    <nav className="w-full border-b border-gray-300 bg-[#1F3A93] text-white relative z-50">
       {/* ================= TOP BAR ================= */}
       <div className="flex items-center justify-between px-4 py-3 sm:px-6">
         {/* LEFT */}
@@ -54,12 +61,11 @@ export default function Navbar() {
           {/* PROFIL */}
           <Link
             href="/mahasiswa/profil"
-            className={`flex items-center gap-1 transition-colors hover:underline ${isActive(
-              "/mahasiswa/profil"
-            )}`}
+            className={`flex items-center gap-1 transition-colors hover:underline ${pathname === "/mahasiswa/profil" ? "font-semibold underline" : ""
+              }`}
           >
             <User className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span>Mahasiswa</span>
+            <span className="hidden sm:inline">Mahasiswa</span>
           </Link>
 
           {/* LOGOUT */}
@@ -69,32 +75,23 @@ export default function Navbar() {
             className="flex items-center gap-1 transition-colors hover:text-red-400"
           >
             <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
-            <span>Keluar</span>
+            <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>
       </div>
 
-      {/* ================= MENU BAR ================= */}
-      <div className="flex gap-4 bg-[#E9EBEE] px-4 py-2 text-xs text-black sm:gap-6 sm:px-6 sm:text-sm">
-        <Link
-          href="/mahasiswa/informasi-parkir"
-          className={`underline-offset-4 transition-colors hover:text-[#1F3A93] hover:underline ${pathname === "/mahasiswa/informasi-parkir"
-            ? "font-semibold text-[#1F3A93] underline"
-            : ""
-            }`}
-        >
-          Informasi Parkir
-        </Link>
-
-        <Link
-          href="/mahasiswa/statistik-kendaraan"
-          className={`underline-offset-4 transition-colors hover:text-[#1F3A93] hover:underline ${pathname === "/mahasiswa/statistik-kendaraan"
-            ? "font-semibold text-[#1F3A93] underline"
-            : ""
-            }`}
-        >
-          Statistik Kendaraan
-        </Link>
+      {/* ================= MENU BAR (Always Visible) ================= */}
+      <div className="flex overflow-x-auto whitespace-nowrap gap-4 bg-[#E9EBEE] px-4 py-2 text-xs text-black sm:gap-6 sm:px-6 sm:text-sm">
+        {navLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`flex items-center gap-2 px-2 py-1 transition-colors ${isActive(link.href)}`}
+          >
+            {link.icon}
+            {link.label}
+          </Link>
+        ))}
       </div>
     </nav>
   );

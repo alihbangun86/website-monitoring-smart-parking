@@ -84,7 +84,7 @@ export default function LupaPasswordPage() {
 
         <div className="mt-6 text-center text-xs">
           <Link href="/" className="text-[#1F3A93] hover:underline">
-            Kembali ke Login
+            Kembali ke Masuk
           </Link>
         </div>
       </div>
