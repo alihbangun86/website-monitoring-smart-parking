@@ -128,9 +128,9 @@ export default function ProfilMahasiswaPage() {
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
 
       {/* ================= HEADER ================= */}
-      <div className="flex flex-col items-center gap-4 border-b pb-6">
+      <div className="flex flex-col items-center gap-4 pb-6">
 
-        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full border-2 border-[#1F3A93] overflow-hidden bg-white">
+        <div className="h-16 w-16 md:h-20 md:w-20 rounded-full border-1 border-[#1F3A93] overflow-hidden bg-white">
           {previewFoto ? (
             <img
               src={previewFoto}
@@ -152,13 +152,24 @@ export default function ProfilMahasiswaPage() {
 
         <label
           htmlFor="uploadFoto"
-          className="cursor-pointer rounded bg-[#1F3A93] px-4 py-1 text-xs font-semibold text-white hover:bg-[#162C6E] transition"
+          className="cursor-pointer  text-xs font-semibold text-[#1F3A93] transition"
         >
           Ubah Foto
         </label>
 
-        <div className="text-sm font-medium text-green-600">
-          Akun Aktif
+        <div
+          className={`rounded-full px-2 py-1 text-xs font-bold ${profil.status_akun === 1
+            ? "bg-green-100 text-green-700"
+            : profil.status_akun === 2
+              ? "bg-red-100 text-red-700"
+              : "bg-yellow-100 text-yellow-700"
+            }`}
+        >
+          {profil.status_akun === 1
+            ? "Akun Aktif"
+            : profil.status_akun === 2
+              ? "Akun Diblokir"
+              : "Menunggu Verifikasi"}
         </div>
       </div>
 
