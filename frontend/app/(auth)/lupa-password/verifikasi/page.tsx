@@ -10,6 +10,7 @@ export default function VerifikasiOTPPage() {
 
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -30,10 +31,32 @@ export default function VerifikasiOTPPage() {
       return;
     }
 
-    // 🔥 Nanti verifikasi ke backend
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      setLoading(true);
 
-    router.push(`/reset-password/${otp}`);
+      const response = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          otp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "OTP tidak valid");
+      }
+
+      router.push(`/reset-password/${otp}`);
+    } catch (err: any) {
+      setError(err.message || "Gagal verifikasi OTP");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -62,9 +85,10 @@ export default function VerifikasiOTPPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E]"
+            disabled={loading}
+            className="w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E] disabled:opacity-60"
           >
-            Verifikasi
+            {loading ? "Memverifikasi..." : "Verifikasi"}
           </button>
         </form>
 

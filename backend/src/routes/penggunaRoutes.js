@@ -8,6 +8,7 @@ const {
    riwayatParkirPengguna,
    logoutPengguna,
    requestOtp,
+   verifyOtp,
    resetPasswordOtp,
    getProfilPengguna,
    changePassword,
@@ -30,6 +31,9 @@ router.post("/auth/logout", logoutPengguna);
 
 // REQUEST OTP
 router.post("/auth/request-otp", requestOtp);
+
+// VERIFY OTP
+router.post("/auth/verify-otp", verifyOtp);
 
 // RESET PASSWORD (OTP)
 router.post("/auth/reset-password", resetPasswordOtp);

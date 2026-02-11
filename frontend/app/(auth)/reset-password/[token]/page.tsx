@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const params = useParams();
+  const token = params?.token as string;
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,10 +28,42 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    // 🔥 Kirim ke backend reset password
-    await new Promise((r) => setTimeout(r, 1000));
+    const email = sessionStorage.getItem("reset_email");
+    if (!email) {
+      setError("Sesi kadaluarsa, silakan ulang dari awal");
+      return;
+    }
 
-    router.push("/lupa-password/sukses");
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          otp: token,
+          password_baru: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Gagal reset password");
+      }
+
+      // Hapus email dari session setelah sukses
+      sessionStorage.removeItem("reset_email");
+
+      router.push("/lupa-password/sukses");
+    } catch (err: any) {
+      setError(err.message || "Gagal reset password");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,9 +96,10 @@ export default function ResetPasswordPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E]"
+            disabled={loading}
+            className="w-full rounded-full bg-[#1F3A93] py-2 text-sm font-semibold text-white hover:bg-[#162C6E] disabled:opacity-60"
           >
-            Simpan Password
+            {loading ? "Menyimpan..." : "Simpan Password"}
           </button>
         </form>
 

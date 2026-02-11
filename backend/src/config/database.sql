@@ -21,11 +21,10 @@ CREATE TABLE pengguna (
     prodi VARCHAR(100),
     angkatan VARCHAR(50),
     foto VARCHAR(100),
-    password VARCHAR(50) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     status_akun BOOLEAN DEFAULT FALSE,
     tanggal_daftar DATETIME
 );
-
 
 -- =========================
 -- TABEL ADMIN
@@ -33,7 +32,7 @@ CREATE TABLE pengguna (
 CREATE TABLE admin (
     id_admin INT AUTO_INCREMENT PRIMARY KEY,
     nama VARCHAR(50) NOT NULL,
-    password VARCHAR(50) NOT NULL
+    password VARCHAR(255) NOT NULL
 );
 
 -- =========================

@@ -420,6 +420,40 @@ const resetPasswordOtp = async (req, res) => {
   }
 };
 
+/* =====================================================
+   VERIFIKASI OTP
+ ===================================================== */
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const rows = await query(
+      `SELECT * FROM reset_password_otp
+       WHERE email = ? AND otp = ? AND expired_at > NOW()
+       LIMIT 1`,
+      [email, otp]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        status: "error",
+        message: "OTP tidak valid atau kadaluarsa",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "OTP valid",
+    });
+  } catch (error) {
+    console.error("VERIFY OTP ERROR:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal verifikasi OTP",
+    });
+  }
+};
+
 module.exports = {
   registerPengguna,
   loginPengguna,
@@ -429,5 +463,6 @@ module.exports = {
   riwayatParkirPengguna,
   logoutPengguna,
   requestOtp,
+  verifyOtp,
   resetPasswordOtp,
 };

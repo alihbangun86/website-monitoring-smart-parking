@@ -24,15 +24,26 @@ export default function LupaPasswordPage() {
     try {
       setLoading(true);
 
-      // 🔥 Nanti hubungkan ke backend kirim OTP
-      await new Promise((r) => setTimeout(r, 1000));
+      const response = await fetch("/api/auth/request-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Gagal mengirim OTP");
+      }
 
       // Simpan email ke sessionStorage agar bisa dipakai di halaman verifikasi
       sessionStorage.setItem("reset_email", email);
 
       router.push("/lupa-password/verifikasi");
-    } catch {
-      setError("Gagal mengirim OTP");
+    } catch (err: any) {
+      setError(err.message || "Gagal mengirim OTP");
     } finally {
       setLoading(false);
     }

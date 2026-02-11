@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     prodi: DataTypes.STRING(100),
     angkatan: DataTypes.INTEGER,
     foto: DataTypes.STRING(100),
-    password: DataTypes.STRING(50),
+    password: DataTypes.STRING(255),
     status_akun: DataTypes.BOOLEAN,
     tanggal_daftar: DataTypes.DATE
   }, {
