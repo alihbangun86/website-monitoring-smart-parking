@@ -129,3 +129,20 @@ CREATE TABLE reset_password_otp (
     expired_at DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE rfid_registration_session (
+    id_session INT AUTO_INCREMENT PRIMARY KEY,
+    id_kendaraan INT NOT NULL,
+    id_admin INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expired_at DATETIME,
+    status ENUM('PENDING','DONE','EXPIRED') DEFAULT 'PENDING',
+    CONSTRAINT fk_session_kendaraan
+        FOREIGN KEY (id_kendaraan)
+        REFERENCES kendaraan(id_kendaraan)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_session_admin
+        FOREIGN KEY (id_admin)
+        REFERENCES admin(id_admin)
+        ON DELETE CASCADE
+);

@@ -241,76 +241,118 @@ const hapusPengguna = async (req, res) => {
 ===================================================== */
 const generateRFID = async (req, res) => {
   try {
-    let { id_kendaraan, kode_rfid } = req.body;
+    const { id_kendaraan, kode_rfid, id_admin } = req.body;
 
-    if (!id_kendaraan) {
-      return res.status(400).json({
-        status: "error",
-        message: "ID kendaraan wajib diisi",
-      });
-    }
+    /* ===============================
+       MODE 1 → ADMIN MULAI REGISTRASI
+    =============================== */
+    if (id_kendaraan && id_admin && !kode_rfid) {
 
-    // Jika kode_rfid tidak dikirim, generate otomatis
-    if (!kode_rfid) {
-      kode_rfid = `RFID-${Date.now()}`;
-    }
-
-    const kendaraan = await query(
-      "SELECT id_kendaraan FROM kendaraan WHERE id_kendaraan = ?",
-      [id_kendaraan]
-    );
-
-    if (kendaraan.length === 0) {
-      return res.status(404).json({
-        status: "error",
-        message: "Kendaraan tidak ditemukan",
-      });
-    }
-
-    // Cek apakah kode_rfid sudah dipakai kendaraan lain
-    const existingRFID = await query(
-      "SELECT id_kendaraan FROM rfid WHERE kode_rfid = ? AND id_kendaraan != ?",
-      [kode_rfid, id_kendaraan]
-    );
-
-    if (existingRFID.length > 0) {
-      return res.status(400).json({
-        status: "error",
-        message: "Kode RFID ini sudah digunakan oleh kendaraan lain",
-      });
-    }
-
-    // UPSERT: Cek apakah kendaraan ini sudah punya RFID
-    const currentRFID = await query(
-      "SELECT id_rfid FROM rfid WHERE id_kendaraan = ?",
-      [id_kendaraan]
-    );
-
-    if (currentRFID.length > 0) {
-      // Update
-      await query(
-        "UPDATE rfid SET kode_rfid = ? WHERE id_kendaraan = ?",
-        [kode_rfid, id_kendaraan]
+      // validasi kendaraan
+      const kendaraan = await query(
+        "SELECT id_kendaraan FROM kendaraan WHERE id_kendaraan = ?",
+        [id_kendaraan]
       );
-    } else {
-      // Insert
-      await query(
-        "INSERT INTO rfid (id_kendaraan, kode_rfid, status_rfid, tanggal_aktif) VALUES (?, ?, 1, NOW())",
-        [id_kendaraan, kode_rfid]
-      );
+
+      if (kendaraan.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Kendaraan tidak ditemukan"
+        });
+      }
+
+      // expire dalam 60 detik
+      await query(`
+        INSERT INTO rfid_registration_session
+        (id_kendaraan, id_admin, expired_at)
+        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 60 SECOND))
+      `, [id_kendaraan, id_admin]);
+
+      return res.json({
+        status: "success",
+        message: "Silakan scan kartu dalam 60 detik"
+      });
     }
 
-    return res.status(200).json({
-      status: "success",
-      message: "RFID berhasil diperbarui",
-      data: { kode_rfid },
+    /* ===============================
+       MODE 2 → ARDUINO KIRIM UID
+    =============================== */
+    if (kode_rfid) {
+
+      // cari session aktif
+      const session = await query(`
+        SELECT * FROM rfid_registration_session
+        WHERE status = 'PENDING'
+          AND expired_at > NOW()
+        ORDER BY id_session DESC
+        LIMIT 1
+      `);
+
+      if (session.length === 0) {
+        return res.json({
+          status: "error",
+          message: "Tidak ada sesi registrasi aktif atau sudah expired"
+        });
+      }
+
+      const { id_kendaraan, id_session } = session[0];
+
+      // cek apakah RFID sudah dipakai
+      const existing = await query(
+        "SELECT id_rfid FROM rfid WHERE kode_rfid = ?",
+        [kode_rfid]
+      );
+
+      if (existing.length > 0) {
+        return res.json({
+          status: "error",
+          message: "RFID sudah digunakan"
+        });
+      }
+
+      // insert / update RFID
+      const current = await query(
+        "SELECT id_rfid FROM rfid WHERE id_kendaraan = ?",
+        [id_kendaraan]
+      );
+
+      if (current.length > 0) {
+        await query(
+          "UPDATE rfid SET kode_rfid = ?, tanggal_aktif = NOW() WHERE id_kendaraan = ?",
+          [kode_rfid, id_kendaraan]
+        );
+      } else {
+        await query(
+          `INSERT INTO rfid
+           (id_kendaraan, kode_rfid, status_rfid, tanggal_aktif)
+           VALUES (?, ?, 1, NOW())`,
+          [id_kendaraan, kode_rfid]
+        );
+      }
+
+      // update session jadi DONE
+      await query(
+        "UPDATE rfid_registration_session SET status = 'DONE' WHERE id_session = ?",
+        [id_session]
+      );
+
+      return res.json({
+        status: "success",
+        message: "RFID berhasil didaftarkan",
+        data: { kode_rfid }
+      });
+    }
+
+    return res.status(400).json({
+      status: "error",
+      message: "Request tidak valid"
     });
 
   } catch (err) {
     console.error("generateRFID:", err);
     return res.status(500).json({
       status: "error",
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
