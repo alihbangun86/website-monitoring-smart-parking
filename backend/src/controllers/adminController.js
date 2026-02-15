@@ -356,6 +356,14 @@ const generateRFID = async (req, res) => {
       // Tutup Sesi
       await query("UPDATE rfid_registration_session SET status = 'DONE' WHERE id_session = ?", [id_session]);
 
+      // 📡 Emit Socket Event untuk update real-time di Dashboard Admin
+      const io = req.app.get("io");
+      io.emit("rfid_scanned", {
+        status: "success",
+        kode_rfid,
+        id_kendaraan: targetId
+      });
+
       return res.json({ status: "success", message: "RFID berhasil didaftarkan otomatis via alat", data: { kode_rfid } });
     }
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Check, X, Ban, Trash2 } from "lucide-react";
+import { io } from "socket.io-client";
 
 type Profil = {
   npm: string;
@@ -44,7 +45,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const [totalData, setTotalData] = useState(0);
   const limit = 5;
 
-  const fetchDetail = async () => {
+  const fetchDetail = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/users/profile?npm=${npm}`, {
@@ -62,9 +63,9 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     } finally {
       setLoading(false);
     }
-  };
+  }, [npm]);
 
-  const fetchRiwayat = async () => {
+  const fetchRiwayat = useCallback(async () => {
     try {
       const offset = (page - 1) * limit;
       const res = await fetch(`/api/admin/parkir?search=${npm}&limit=${limit}&offset=${offset}`, {
@@ -78,15 +79,43 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [npm, page]);
 
   useEffect(() => {
     if (npm) fetchDetail();
-  }, [npm]);
+  }, [fetchDetail, npm]);
 
   useEffect(() => {
     if (npm) fetchRiwayat();
-  }, [npm, page]);
+  }, [fetchRiwayat, npm, page]);
+
+  // 📡 Real-time Socket.io listener untuk RFID & Riwayat Parkir
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+
+    // 1. Listen for RFID Scan (Registration)
+    socket.on("rfid_scanned", (payload: any) => {
+      console.log("📡 RFID Scan Received:", payload);
+      if (profil && payload.id_kendaraan === profil.id_kendaraan) {
+        setEditRfid(payload.kode_rfid);
+        alert("RFID Berhasil di-scan otomatis!");
+        fetchDetail();
+      }
+    });
+
+    // 2. Listen for Entry/Exit (Log Parking)
+    socket.on("parking_update", (payload: any) => {
+      console.log("🚗 Parking activity detected:", payload);
+      // Refresh riwayat dan sisa kuota jika mahasiswa ini yang melakukan scan
+      // (Bisa juga refresh untuk semua jika ingin lebih aman)
+      fetchDetail();
+      fetchRiwayat();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [profil, fetchDetail, fetchRiwayat]);
 
   const [scanLoading, setScanLoading] = useState(false);
 

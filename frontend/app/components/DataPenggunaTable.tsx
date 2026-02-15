@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Check, X, Ban, Trash2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { io } from "socket.io-client";
 
 type User = {
   npm: string;
@@ -31,7 +32,7 @@ export default function DataPenggunaTable({
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -71,7 +72,7 @@ export default function DataPenggunaTable({
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, limit, search, statusFilter]);
 
   useEffect(() => {
     setPage(1);
@@ -79,7 +80,17 @@ export default function DataPenggunaTable({
 
   useEffect(() => {
     fetchUsers();
-  }, [page, limit, search, statusFilter]);
+
+    // Listen for real-time parking updates to refresh sisa_kuota
+    const socket = io("http://localhost:5000");
+    socket.on("parking_update", () => {
+      fetchUsers();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchUsers]);
 
   const updateStatus = async (npm: string, status: number) => {
     let message = "Aktifkan hak parkir pengguna ini?";
