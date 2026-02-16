@@ -30,19 +30,15 @@ export default function StatistikKendaraanPage() {
 
   return (
     <div className="space-y-6">
-      {/* ===== DESKRIPSI ===== */}
-      <div className="rounded-lg bg-gray-200 p-4 text-sm text-gray-700">
-        <p>
-          Data parkir diperbarui secara real-time untuk membantu pengguna
-          mengambil keputusan sebelum memasuki area parkir.
+      {/* ===== INFORMASI ===== */}
+      <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+        <h3 className="text-sm font-semibold text-[#1F3A93] mb-2">
+          📊 Tentang Statistik
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
+          Statistik ini menampilkan <span className="font-semibold">jumlah kendaraan yang masuk</span> pada waktu tertentu.
+          Data diperbarui secara otomatis dan real-time.
         </p>
-
-        <button
-          onClick={handleRefresh}
-          className="mt-3 rounded bg-[#1F3A93] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#162C6E]"
-        >
-          Perbarui Data
-        </button>
       </div>
 
       {/* ===== STATISTIK ===== */}

@@ -15,7 +15,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 type Periode = "harian" | "mingguan" | "bulanan";
 
-/* 🔑 TAMBAH PROP REFRESH */
 type StatistikKendaraanProps = {
   refreshKey?: number;
 };
@@ -29,8 +28,9 @@ export default function StatistikKendaraan({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter States
-  const [filterDate, setFilterDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [filterDate, setFilterDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
 
@@ -42,18 +42,20 @@ export default function StatistikKendaraan({
         setError(null);
 
         const params = new URLSearchParams({ periode });
+
         if (periode === "harian" && filterDate) {
           params.append("date", filterDate);
         } else if (periode === "mingguan") {
           if (fromDate) params.append("from", fromDate);
           if (toDate) params.append("to", toDate);
         } else if (periode === "bulanan" && filterDate) {
-          params.append("date", filterDate); // Untuk ambil tahun
+          params.append("date", filterDate);
         }
 
-        const res = await fetch(`/api/statistik/kendaraan?${params.toString()}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/api/statistik/kendaraan?${params.toString()}`,
+          { cache: "no-store" }
+        );
 
         const result = await res.json();
 
@@ -61,8 +63,8 @@ export default function StatistikKendaraan({
           throw new Error(result.message || "Gagal mengambil data statistik");
         }
 
-        setLabels(result.labels);
-        setValues(result.data);
+        setLabels(result.labels ?? []);
+        setValues(result.data ?? []);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -73,6 +75,7 @@ export default function StatistikKendaraan({
     fetchStatistik();
   }, [periode, refreshKey, filterDate, fromDate, toDate]);
 
+  /* ================= CHART DATA ================= */
   const chartData = {
     labels,
     datasets: [
@@ -89,36 +92,34 @@ export default function StatistikKendaraan({
     <div className="rounded-lg bg-gray-200 p-3 md:p-4">
       {/* HEADER */}
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-xs md:text-sm font-semibold">Statistik Kendaraan</h3>
+        <h3 className="text-xs md:text-sm font-semibold">
+          Statistik Kendaraan
+        </h3>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* HARIAN & BULANAN FILTER (Single Date / Year) */}
           {(periode === "harian" || periode === "bulanan") && (
             <input
               type="date"
               value={filterDate}
               onChange={(e) => setFilterDate(e.target.value)}
-              className="rounded border px-2 py-1 text-[10px] md:text-xs focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
+              className="rounded border px-2 py-1 text-[10px] md:text-xs"
             />
           )}
 
-          {/* MINGGUAN FILTER (Range) */}
           {periode === "mingguan" && (
             <div className="flex items-center gap-1">
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="rounded border px-2 py-1 text-[10px] md:text-xs focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
-                placeholder="Dari"
+                className="rounded border px-2 py-1 text-[10px] md:text-xs"
               />
               <span className="text-[10px]">-</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="rounded border px-2 py-1 text-[10px] md:text-xs focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
-                placeholder="Sampai"
+                className="rounded border px-2 py-1 text-[10px] md:text-xs"
               />
             </div>
           )}
@@ -126,7 +127,7 @@ export default function StatistikKendaraan({
           <select
             value={periode}
             onChange={(e) => setPeriode(e.target.value as Periode)}
-            className="rounded border bg-white px-2 py-1 text-[10px] md:text-xs focus:outline-none focus:ring-1 focus:ring-[#1F3A93] w-full sm:w-auto"
+            className="rounded border bg-white px-2 py-1 text-[10px] md:text-xs"
           >
             <option value="harian">Harian</option>
             <option value="mingguan">Mingguan</option>
@@ -143,7 +144,9 @@ export default function StatistikKendaraan({
           </p>
         )}
 
-        {error && <p className="text-center text-xs text-red-500">{error}</p>}
+        {error && (
+          <p className="text-center text-xs text-red-500">{error}</p>
+        )}
 
         {!loading && !error && labels.length > 0 && (
           <Bar
@@ -155,25 +158,39 @@ export default function StatistikKendaraan({
                 legend: { display: false },
                 tooltip: {
                   callbacks: {
-                    label: (context) => `${context.parsed.y} kendaraan`,
+                    label: (context) =>
+                      `${context.parsed.y} kendaraan`,
                   },
                 },
               },
               scales: {
                 x: {
                   ticks: {
+                    autoSkip: false,
+                    maxRotation: 0,
                     font: {
-                      size: 11, // Ukuran font lebih besar
+                      size: 11,
                       weight: "bold",
                     },
-                    color: "#374151", // Gray-700
+                    color: "#374151",
+                    // 🔥 hanya tampil setiap kelipatan 10 index
+                    callback: function (value, index) {
+                      if (index % 10 === 0) {
+                        return labels[index] ?? "";
+                      }
+                      return "";
+                    },
                   },
                   grid: {
-                    display: false, // Menghilangkan garis vertikal agar lebih bersih
+                    display: false,
                   },
                 },
                 y: {
                   beginAtZero: true,
+                  ticks: {
+                    stepSize: 10,
+                    precision: 0,
+                  },
                   title: {
                     display: true,
                     text: "Jumlah Kendaraan",
@@ -181,12 +198,6 @@ export default function StatistikKendaraan({
                       size: 12,
                       weight: "bold",
                     },
-                  },
-                  ticks: {
-                    precision: 0, // Memastikan angka bulat (tidak ada 1.5)
-                    font: {
-                      size: 11,
-                    }
                   },
                 },
               },

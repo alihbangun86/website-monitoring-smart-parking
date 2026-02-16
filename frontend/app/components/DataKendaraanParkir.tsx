@@ -145,20 +145,29 @@ export default function DataKendaraanParkir({
 
         <div className="flex items-center gap-2 text-xs">
           <span className="text-gray-600">Tampilkan</span>
-          <select
-            value={limit}
-            onChange={(e) => {
-              setLimit(Number(e.target.value));
-              setPage(1); // Reset page saat limit berubah
-            }}
-            className="rounded-md border border-gray-300 px-2 py-1
-              focus:border-[#1F3A93] focus:outline-none"
-          >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+          <div className="relative">
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1); // Reset page saat limit berubah
+              }}
+              className="appearance-none rounded-md border border-gray-300 px-2 py-1 pr-7 bg-white
+                focus:border-[#1F3A93] focus:outline-none"
+              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            {/* Custom Dropdown Arrow */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+              <svg className="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
           <span className="text-gray-600">data per halaman</span>
         </div>
       </div>

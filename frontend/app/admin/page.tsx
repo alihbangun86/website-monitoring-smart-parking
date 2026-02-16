@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-6 text-sm text-gray-600">Loading dashboard...</div>
+      <div className="p-6 text-sm text-gray-600">Loading Beranda...</div>
     );
   }
 
@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
                 disabled={updatingSlot}
                 className="rounded-md bg-[#1F3A93] px-2 py-0.5 text-[10px] font-semibold text-white transition hover:bg-[#162C6E] disabled:opacity-60"
               >
-                {updatingSlot ? "..." : "Update"}
+                {updatingSlot ? "..." : "Perbarui"}
               </button>
             </div>
           </div>

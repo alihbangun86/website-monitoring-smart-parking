@@ -92,9 +92,12 @@ export default function LoginPage() {
         </div>
 
         {/* TITLE */}
-        <h2 className="mb-6 text-center text-lg font-semibold text-[#1F3A93]">
-          Masuk Sistem
+        <h2 className="mb-2 text-center text-lg font-semibold text-[#1F3A93]">
+          Masuk
         </h2>
+        <p className="mb-6 text-center text-xs text-gray-600">
+          Sistem Monitoring Parkir Teknik Geodesi
+        </p>
 
         {/* FORM */}
         <form className="space-y-4" onSubmit={handleLogin}>

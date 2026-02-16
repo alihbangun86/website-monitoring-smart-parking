@@ -38,7 +38,7 @@ export default function InformasiParkirPage() {
   const fetchStatCard = useCallback(async (signal?: AbortSignal) => {
     try {
       const npm = localStorage.getItem("npm");
-      let url = `${process.env.NEXT_PUBLIC_API_URL}/api/statcard/parkir`;
+      let url = `/api/statcard/parkir`;
       if (npm) url += `?npm=${npm}`;
 
       const res = await fetch(url, {
@@ -69,7 +69,7 @@ export default function InformasiParkirPage() {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/pengguna/users/riwayat/${npm}`,
+        `/api/pengguna/users/riwayat/${npm}`,
         { cache: "no-store", signal },
       );
 
@@ -119,19 +119,45 @@ export default function InformasiParkirPage() {
   }, [fetchStatCard, fetchRiwayatParkir]);
 
   useEffect(() => {
+    console.log("🔌 Initializing socket for Informasi Parkir...");
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
       : `http://${window.location.hostname}:5000`;
 
-    const socket = io(socketHost);
+    const socket = io(socketHost, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socket.on("connect", () => {
+      console.log("✅ Informasi Parkir Socket Connected to:", socketHost);
+      console.log("🆔 Socket ID:", socket.id);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("⚠️ Informasi Parkir Socket Disconnected:", reason);
+    });
 
     socket.on("parking_update", (payload: any) => {
       console.log("🚗 Informasi Parkir real-time update:", payload);
+      console.log("🔄 Refreshing statcard and riwayat...");
       if (fetchRef.current) fetchRef.current();
       if (riwayatRef.current) riwayatRef.current();
     });
 
+    socket.on("user_update", (payload: any) => {
+      console.log("👥 User update received:", payload);
+      if (fetchRef.current) fetchRef.current();
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("❌ Informasi Parkir Socket Error:", err.message);
+    });
+
     return () => {
+      console.log("🔌 Disconnecting Informasi Parkir socket...");
       socket.disconnect();
     };
   }, []);
@@ -164,13 +190,7 @@ export default function InformasiParkirPage() {
           <h3 className="text-sm font-semibold text-gray-800">
             Ketersediaan Parkir
           </h3>
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="rounded bg-[#1F3A93] px-4 py-1.5 text-xs font-semibold text-white"
-          >
-            {loading ? "Memperbarui..." : "Perbarui Data"}
-          </button>
+
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

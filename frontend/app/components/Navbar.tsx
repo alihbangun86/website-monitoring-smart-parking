@@ -67,7 +67,7 @@ export default function Navbar() {
             className={`flex items-center gap-1 transition-colors hover:underline ${pathname === "/mahasiswa/profil" ? "font-semibold underline" : ""
               }`}
           >
-            <User className="h-4 w-4 sm:h-5 sm:w-5" />
+            <User className="h-5 w-5 sm:h-6 sm:w-6" />
             <span className="hidden sm:inline">Mahasiswa</span>
           </Link>
 
@@ -77,7 +77,7 @@ export default function Navbar() {
             onClick={handleLogout}
             className="flex items-center gap-1 transition-colors hover:text-red-400"
           >
-            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
+            <LogOut className="h-5 w-5 sm:h-6 sm:w-6" />
             <span className="hidden sm:inline">Keluar</span>
           </button>
         </div>

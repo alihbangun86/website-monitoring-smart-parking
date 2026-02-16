@@ -154,9 +154,12 @@ export default function DaftarPage() {
           />
         </div>
 
-        <h2 className="mb-5 text-center text-lg sm:text-xl font-bold text-blue-900">
-          Registrasi Mahasiswa
+        <h2 className="mb-2 text-center text-lg sm:text-xl font-bold text-blue-900">
+          Daftar Mahasiswa
         </h2>
+        <p className="mb-5 text-center text-xs text-gray-600">
+          Sistem Monitoring Parkir Teknik Geodesi
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -258,20 +261,29 @@ function Input({ name, type = "text", placeholder, value, onChange, required }: 
 
 function Select({ name, value, onChange, options, placeholder, disabled = false, required }: any) {
   return (
-    <select
-      required={required}
-      name={name}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm transition hover:border-blue-600 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 disabled:bg-gray-100"
-    >
-      <option value="">{placeholder}</option>
-      {options.map((opt: string) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        required={required}
+        name={name}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        className="w-full appearance-none rounded-full border border-gray-300 px-4 py-2 pr-10 text-sm transition hover:border-blue-600 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 disabled:bg-gray-100 disabled:cursor-not-allowed bg-white"
+        style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((opt: string) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+      {/* Custom Dropdown Arrow */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+        <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>
   );
 }
