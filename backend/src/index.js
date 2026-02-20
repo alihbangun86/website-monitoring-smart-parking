@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const { connectToDatabase } = require("./config/database");
 
+require("./utils/kuotaBulanan");
 // ================= ROUTES =================
 const penggunaRoutes = require("./routes/penggunaRoutes");
 const adminRoutes = require("./routes/adminRoutes");

@@ -4,7 +4,7 @@ const { sendRegistrationPendingEmail } = require("../utils/email");
 const bcrypt = require("bcryptjs");
 
 /* =====================================================
-   REGISTER PENGGUNA
+   REGISTER PENGGUNA (FINAL - FIX FOREIGN KEY)
 ===================================================== */
 const registerPengguna = async (req, res) => {
   const connection = await pool.getConnection();
@@ -36,6 +36,7 @@ const registerPengguna = async (req, res) => {
 
     await connection.beginTransaction();
 
+    // 1️⃣ Insert pengguna
     await connection.query(
       `INSERT INTO pengguna
        (npm, nama, email, jurusan, prodi, password, status_akun, tanggal_daftar)
@@ -43,24 +44,31 @@ const registerPengguna = async (req, res) => {
       [npm, nama, email, jurusan, prodi, hashedPassword]
     );
 
-    await connection.query(
+    // 2️⃣ Insert kendaraan
+    const [kendaraanResult] = await connection.query(
       `INSERT INTO kendaraan (npm, plat_nomor, stnk)
        VALUES (?, ?, ?)`,
       [npm, plat_nomor, stnk]
     );
 
-    // ✅ LANGSUNG DAPAT KUOTA 30 SAAT DAFTAR
-    await connection.query(
-      "INSERT INTO kuota_parkir (npm, batas_parkir, jumlah_terpakai) VALUES (?, 30, 0)",
-      [npm]
-    );
+    const id_kendaraan = kendaraanResult.insertId;
+
+    // 3️⃣ Insert kuota (WAJIB pakai id_kendaraan)
+    await connection.query(`
+      INSERT INTO kuota_parkir
+      (npm, id_kendaraan, periode_bulan, batas_parkir, jumlah_terpakai, last_reset_date)
+      VALUES (?, ?, DATE_FORMAT(CURDATE(), '%Y-%m'), 30, 0, CURDATE())
+    `, [npm, id_kendaraan]);
 
     await connection.commit();
 
-    // kirim email notifikasi (tidak menggagalkan registrasi jika error)
-    sendRegistrationPendingEmail(email, nama);
+    // Email tidak menggagalkan transaksi
+    try {
+      sendRegistrationPendingEmail(email, nama);
+    } catch (err) {
+      console.error("Email gagal dikirim:", err.message);
+    }
 
-    // 📡 Real-time update untuk Admin
     const io = req.app.get("io");
     if (io) io.emit("user_update", { action: "REGISTER", npm });
 
@@ -68,6 +76,7 @@ const registerPengguna = async (req, res) => {
       status: "success",
       message: "Registrasi berhasil, menunggu verifikasi admin",
     });
+
   } catch (error) {
     await connection.rollback();
     console.error("REGISTER ERROR:", error);

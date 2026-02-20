@@ -1,32 +1,31 @@
 const cron = require("node-cron");
 const { query } = require("../config/database");
 
+console.log("🟢 Cron kuota bulanan aktif...");
+
 // Jalan setiap tanggal 1 jam 00:00
 cron.schedule("* * 1 * *", async () => {
   try {
-    console.log("🔄 Generate kuota bulan baru...");
+    console.log("🗓️ RESET KUOTA BULANAN:", new Date());
 
     const now = new Date();
-    const periode = now.toISOString().slice(0, 7);
+    const periode = now.toISOString().slice(0, 7); // format YYYY-MM
 
-    // Ambil semua kendaraan aktif
-    const kendaraanList = await query(`
-      SELECT k.id_kendaraan, p.npm
-      FROM kendaraan k
-      JOIN pengguna p ON k.npm = p.npm
+    await query(`
+      UPDATE kuota_parkir kp
+      JOIN pengguna p ON kp.npm = p.npm
+      SET
+        kp.periode_bulan = ?,
+        kp.batas_parkir = 30,
+        kp.jumlah_terpakai = 0,
+        kp.last_reset_date = CURDATE()
       WHERE p.status_akun = 1
-    `);
+      AND kp.periode_bulan != ?
+    `, [periode, periode]);
 
-    for (const kendaraan of kendaraanList) {
-      await query(`
-        INSERT IGNORE INTO kuota_parkir
-        (npm, id_kendaraan, periode_bulan, batas_parkir, jumlah_terpakai)
-        VALUES (?, ?, ?, 30, 0)
-      `, [kendaraan.npm, kendaraan.id_kendaraan, periode]);
-    }
+    console.log("✅ Kuota berhasil direset untuk bulan baru");
 
-    console.log("✅ Kuota bulan baru berhasil dibuat");
   } catch (err) {
-    console.error("❌ Gagal generate kuota:", err);
+    console.error("❌ Gagal reset kuota:", err);
   }
 });

@@ -80,26 +80,39 @@ CREATE TABLE slot_parkir (
 -- =========================
 -- TABEL KUOTA PARKIR
 -- =========================
+DROP TABLE IF EXISTS kuota_parkir;
+
 CREATE TABLE kuota_parkir (
     id_kuota INT AUTO_INCREMENT PRIMARY KEY,
-    npm VARCHAR(50),
-    id_kendaraan INT,
-    periode_bulan VARCHAR(7), -- Format: YYYY-MM
-    batas_parkir INT NOT NULL DEFAULT 0,
-    jumlah_terpakai INT DEFAULT 0,
-    id_admin INT,
+
+    npm VARCHAR(50) NOT NULL,
+    id_kendaraan INT NOT NULL,
+
+    periode_bulan VARCHAR(7) NOT NULL, -- Format YYYY-MM
+
+    batas_parkir INT NOT NULL DEFAULT 30,
+    jumlah_terpakai INT NOT NULL DEFAULT 0,
+
+    last_reset_date DATE NOT NULL DEFAULT (CURRENT_DATE),
+
+    id_admin INT NULL,
+
     CONSTRAINT fk_kuota_admin
         FOREIGN KEY (id_admin)
-        REFERENCES admin(id_admin),
+        REFERENCES admin(id_admin)
+        ON DELETE SET NULL,
+
     CONSTRAINT fk_kuota_pengguna
         FOREIGN KEY (npm)
         REFERENCES pengguna(npm)
         ON DELETE CASCADE,
+
     CONSTRAINT fk_kuota_kendaraan
         FOREIGN KEY (id_kendaraan)
         REFERENCES kendaraan(id_kendaraan)
         ON DELETE CASCADE,
-    UNIQUE KEY (id_kendaraan, periode_bulan)
+
+    UNIQUE KEY unique_kendaraan (id_kendaraan)
 );
 
 -- =========================
