@@ -37,7 +37,7 @@ export default function StatistikKendaraanPage() {
         </h3>
         <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
           Statistik ini menampilkan <span className="font-semibold">jumlah kendaraan yang masuk</span> pada waktu tertentu.
-          Data diperbarui secara otomatis dan real-time.
+          Data diperbarui secara real-time.
         </p>
       </div>
 

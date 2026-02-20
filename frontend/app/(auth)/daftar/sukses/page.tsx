@@ -30,7 +30,7 @@ export default function DaftarSuksesPage() {
         </p>
 
         <div className="mb-5 rounded-lg bg-[#E9EBEE] p-3 text-xs text-gray-700">
-          Setelah akun Anda disetujui (ACC) oleh admin, Anda dapat langsung
+          Setelah akun Anda disetujui oleh admin, Anda dapat langsung
           masuk menggunakan akun yang telah didaftarkan.
         </div>
 

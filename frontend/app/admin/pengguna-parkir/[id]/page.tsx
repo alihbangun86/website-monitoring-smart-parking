@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Check, X, Ban, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, X, Ban, Trash2, Loader2, Wifi, CheckCircle2, Timer } from "lucide-react";
 import { io } from "socket.io-client";
 
 type Profil = {
@@ -47,6 +47,13 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
   const limit = 5;
+
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [scanResult, setScanResult] = useState<{ status: "menunggu" | "berhasil" | "gagal"; message: string }>({
+    status: "menunggu",
+    message: "",
+  });
 
   const fetchDetail = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -107,6 +114,20 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     return () => controller.abort();
   }, [fetchRiwayat, npm, page]);
 
+  // ⏲️ Timer Logic untuk Scan
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showScanModal && timeLeft > 0 && scanResult.status === "menunggu") {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (timeLeft === 0 && scanResult.status === "menunggu") {
+      setScanResult({ status: "gagal", message: "Waktu scan habis. Silakan coba lagi." });
+      setTimeout(() => setShowScanModal(false), 3000);
+    }
+    return () => clearInterval(timer);
+  }, [showScanModal, timeLeft, scanResult.status]);
+
   // 📡 Real-time Socket.io listener untuk RFID & Riwayat Parkir
   useEffect(() => {
     const socketHost = window.location.hostname === "localhost"
@@ -123,6 +144,13 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     socket.on("rfid_scanned", (payload: any) => {
       console.log("📡 RFID Scan Received:", payload);
       if (detailRef.current) detailRef.current();
+
+      // ✅ Update modal jika sedang aktif
+      setScanResult({ status: "berhasil", message: "Kartu RFID Berhasil Didaftarkan!" });
+      setTimeout(() => {
+        setShowScanModal(false);
+        setScanResult({ status: "menunggu", message: "" });
+      }, 2500);
     });
 
     // 2. Listen for Entry/Exit (Log Parking)
@@ -186,8 +214,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
       const data = await res.json();
       if (res.ok && data.status === "success") {
-        // Mode Scan Aktif! Silakan tempelkan kartu ke alat dalam 60 detik.
-        // Alert dihapus sesuai permintaan (hanya muncul jika gagal)
+        // 🚀 Aktifkan Modal Scan
+        setScanResult({ status: "menunggu", message: "Silakan tempelkan kartu ke alat scan" });
+        setTimeLeft(60);
+        setShowScanModal(true);
       } else {
         alert(data.message || "Gagal mengaktifkan mode scan");
       }
@@ -268,6 +298,64 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto w-full space-y-6">
+      {/* 🟢 MODAL SCAN RFID */}
+      {showScanModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
+            <div className={`p-8 text-center ${scanResult.status === 'berhasil' ? 'bg-green-50' : 'bg-white'}`}>
+
+              {scanResult.status === "menunggu" && (
+                <div className="space-y-6">
+                  <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-50">
+                    <Wifi className="h-12 w-12 text-[#1F3A93] animate-pulse" />
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-gray-800">Menunggu Scan...</h3>
+                    <p className="text-sm text-gray-500">Silakan tempelkan kartu RFID pada alat pembaca sekarang.</p>
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[#1F3A93] bg-blue-50 py-3 rounded-xl font-mono text-2xl font-black">
+                    <Timer size={24} />
+                    00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                  </div>
+                  <button
+                    onClick={() => setShowScanModal(false)}
+                    className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    Batalkan Proses
+                  </button>
+                </div>
+              )}
+
+              {scanResult.status === "berhasil" && (
+                <div className="space-y-6 animate-in zoom-in duration-500">
+                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle2 className="h-14 w-14 text-green-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-black text-green-800">BERHASIL!</h3>
+                    <p className="text-sm font-medium text-green-700">{scanResult.message}</p>
+                  </div>
+                </div>
+              )}
+
+              {scanResult.status === "gagal" && (
+                <div className="space-y-6">
+                  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-red-100">
+                    <X className="h-12 w-12 text-red-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-red-800">Waktu Habis</h3>
+                    <p className="text-sm text-red-600">{scanResult.message}</p>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SINGLE CARD CONTAINER */}
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
 
