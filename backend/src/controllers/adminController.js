@@ -78,6 +78,8 @@ const verifikasiPengguna = async (req, res) => {
     );
 
     // Kirim email verifikasi jika diaktifkan (status_akun === 1)
+
+    // Kirim email verifikasi jika diaktifkan (status_akun === 1)
     if (status_akun === 1) {
       // ✅ JARING PENGAMAN: PASTIKAN USER PUNYA KUOTA (Jika belum ada)
       const existingKuota = await query(
