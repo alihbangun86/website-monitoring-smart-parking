@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 
 /* ================= DATA JURUSAN & PRODI ================= */
 
@@ -63,6 +64,7 @@ export default function DaftarPage() {
   const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   /* ================= HANDLE CHANGE ================= */
 
@@ -82,6 +84,17 @@ export default function DaftarPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
+
+    if (file && file.size > 2 * 1024 * 1024) {
+      setError("Ukuran file STNK maksimal 2MB. Tidak bisa menyimpan perubahan.");
+      e.target.value = ""; // Reset input
+      setStnk(null);
+      setFileName("");
+      return;
+    }
+
+    setError(""); // Clear error if file is valid
+
     setStnk(file);
     setFileName(file ? file.name : "");
   };
@@ -103,6 +116,12 @@ export default function DaftarPage() {
       !stnk
     ) {
       setError("Semua field wajib diisi");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError("Format email tidak valid");
       return;
     }
 
@@ -186,8 +205,24 @@ export default function DaftarPage() {
             disabled={!form.jurusan}
           />
 
-          <Input required name="plat_nomor" placeholder="Nomor Kendaraan" value={form.plat_nomor} onChange={handleChange} />
-          <Input required name="password" type="password" placeholder="Kata Sandi" value={form.password} onChange={handleChange} />
+          <Input required name="plat_nomor" placeholder="Nomor Kendaraan (Contoh: BE 1234 ABC)" value={form.plat_nomor} onChange={handleChange} />
+          <Input
+            required
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Kata Sandi"
+            value={form.password}
+            onChange={handleChange}
+            icon={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-500 hover:text-blue-700 focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            }
+          />
 
           {/* FILE UPLOAD */}
           <div className="space-y-1">
@@ -210,13 +245,13 @@ export default function DaftarPage() {
             )}
 
             <p className="text-[10px] sm:text-xs text-gray-500">
-              Format JPG, PNG atau PDF. Pastikan data terlihat jelas.
+              Format JPG, PNG atau PDF. Maksimal 2MB. Pastikan data terlihat jelas.
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !!error}
             className="w-full rounded-full bg-blue-900 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 active:scale-95 disabled:opacity-60"
           >
             {loading ? "Memproses..." : "Daftar"}
@@ -245,17 +280,25 @@ export default function DaftarPage() {
 
 /* ================= COMPONENT ================= */
 
-function Input({ name, type = "text", placeholder, value, onChange, required }: any) {
+function Input({ name, type = "text", placeholder, value, onChange, required, icon }: any) {
   return (
-    <input
-      required={required}
-      name={name}
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm transition hover:border-blue-600 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700"
-    />
+    <div className="relative">
+      <input
+        required={required}
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className={`w-full rounded-full border border-gray-300 px-4 py-2 text-sm transition hover:border-blue-600 focus:border-blue-700 focus:outline-none focus:ring-1 focus:ring-blue-700 ${icon ? "pr-10" : ""
+          }`}
+      />
+      {icon && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+          {icon}
+        </div>
+      )}
+    </div>
   );
 }
 

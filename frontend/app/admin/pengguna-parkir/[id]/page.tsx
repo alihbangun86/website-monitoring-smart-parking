@@ -46,7 +46,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   // Pagination State
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
-  const limit = 5;
+  const [limit, setLimit] = useState(10);
 
   const [showScanModal, setShowScanModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
@@ -95,7 +95,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         console.error(err);
       }
     }
-  }, [npm, page]);
+  }, [npm, page, limit]);
 
   useEffect(() => {
     detailRef.current = fetchDetail;
@@ -112,7 +112,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     const controller = new AbortController();
     if (npm) fetchRiwayat(controller.signal);
     return () => controller.abort();
-  }, [fetchRiwayat, npm, page]);
+  }, [fetchRiwayat, npm, page, limit]);
 
   // ⏲️ Timer Logic untuk Scan
   useEffect(() => {
@@ -553,9 +553,46 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* ================= RIWAYAT PER USER ================= */}
         <div className="space-y-4">
-          <h2 className="text-sm font-semibold text-gray-800">
-            Riwayat Parkir
-          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-semibold text-gray-800">
+              Riwayat Parkir
+            </h2>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-500">Tampilkan</span>
+              <div className="relative w-fit">
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(Number(e.target.value));
+                    setPage(1);
+                  }}
+                  className="appearance-none rounded border border-gray-300 pl-2 pr-8 py-1 focus:border-[#1F3A93] focus:outline-none bg-white font-medium"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                  <svg
+                    className="h-4 w-4 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <span className="text-gray-500">data</span>
+            </div>
+          </div>
 
           <div className="overflow-x-auto rounded-lg border border-gray-200">
             <table className="w-full text-xs text-left">

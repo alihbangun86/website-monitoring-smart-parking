@@ -92,64 +92,73 @@ export default function LaporanExport() {
   };
 
   return (
-    <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-5">
-      <h3 className="mb-4 text-sm font-semibold text-gray-800">
+    <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-4 sm:p-5 shadow-sm">
+      <h3 className="mb-3 text-[13px] sm:text-sm font-bold text-gray-800">
         Export Laporan Akhir
       </h3>
 
       {/* ===== PERIODE ===== */}
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="mb-4 space-y-3">
         <div>
-          <label className="text-xs font-medium text-gray-600">Periode</label>
-          <div className="relative">
-            <select
-              value={periode}
-              onChange={(e) => {
-                setPeriode(e.target.value);
-                setFrom("");
-                setTo("");
-                setDateError("");
-              }}
-              className="appearance-none mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 pr-8 text-xs bg-white focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
-              style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-            >
-              <option value="harian">Harian</option>
-              <option value="mingguan">Mingguan</option>
-              <option value="bulanan">Bulanan</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 mt-1">
-              <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+          <label className="mb-1.5 block text-[11px] sm:text-xs font-semibold text-gray-600">Pilih Periode</label>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: "harian", label: "Harian" },
+              { id: "mingguan", label: "Mingguan" },
+              { id: "bulanan", label: "Bulanan" },
+            ].map((p) => (
+              <label
+                key={p.id}
+                className={`flex-1 sm:flex-none flex justify-center items-center px-3 py-1.5 rounded-lg border text-[10px] sm:text-xs font-bold transition-all cursor-pointer ${periode === p.id
+                  ? "bg-[#1F3A93] text-white border-[#1F3A93] shadow-sm"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-[#1F3A93]"
+                  }`}
+              >
+                <input
+                  type="radio"
+                  name="periode"
+                  value={p.id}
+                  checked={periode === p.id}
+                  onChange={() => {
+                    setPeriode(p.id);
+                    setFrom("");
+                    setTo("");
+                    setDateError("");
+                  }}
+                  className="hidden"
+                />
+                {p.label}
+              </label>
+            ))}
           </div>
-          <p className="mt-1 text-[10px] text-gray-500">
-            {periode === "harian" && "Pilih 1 hari yang sama"}
-            {periode === "mingguan" && "Otomatis 7 hari dari tanggal mulai"}
-            {periode === "bulanan" && "Otomatis 30 hari dari tanggal mulai"}
+          <p className="mt-1.5 text-[9px] sm:text-[10px] text-gray-500 italic">
+            {periode === "harian" && "* Pilih 1 hari yang sama"}
+            {periode === "mingguan" && "* Otomatis rentang 7 hari dari tanggal mulai"}
+            {periode === "bulanan" && "* Otomatis rentang 30 hari dari tanggal mulai"}
           </p>
         </div>
 
-        <div>
-          <label className="text-xs font-medium text-gray-600">Dari</label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => handleFromDateChange(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93]"
-          />
-        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-[11px] sm:text-xs font-semibold text-gray-600">Dari</label>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => handleFromDateChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[10px] sm:text-xs focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93] h-[34px] sm:h-[38px]"
+            />
+          </div>
 
-        <div>
-          <label className="text-xs font-medium text-gray-600">Sampai</label>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-1.5 text-xs focus:border-[#1F3A93] focus:outline-none focus:ring-1 focus:ring-[#1F3A93] bg-gray-50"
-            readOnly
-            title="Tanggal akhir otomatis disesuaikan dengan periode"
-          />
+          <div>
+            <label className="mb-1 block text-[11px] sm:text-xs font-semibold text-gray-600">Sampai</label>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 bg-gray-50 px-2 py-1.5 text-[10px] sm:text-xs focus:border-[#1F3A93] focus:outline-none h-[34px] sm:h-[38px] text-gray-500"
+              readOnly
+            />
+          </div>
         </div>
       </div>
 
@@ -161,16 +170,19 @@ export default function LaporanExport() {
       )}
 
       {/* ===== FORMAT FILE ===== */}
-      <div className="mb-4">
-        <label className="mb-2 block text-xs font-medium text-gray-600">
+      <div className="mb-5">
+        <label className="mb-1.5 block text-[11px] sm:text-xs font-semibold text-gray-600">
           Format File
         </label>
 
-        <div className="flex gap-6 text-xs">
+        <div className="flex flex-wrap gap-1.5">
           {["pdf", "csv", "excel"].map((item) => (
             <label
               key={item}
-              className="flex cursor-pointer items-center gap-2"
+              className={`flex-1 sm:flex-none flex justify-center items-center px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${format === item
+                ? "bg-[#1F3A93] text-white border-[#1F3A93] shadow-sm"
+                : "bg-white text-gray-700 border-gray-300 hover:border-[#1F3A93]"
+                }`}
             >
               <input
                 type="radio"
@@ -178,9 +190,9 @@ export default function LaporanExport() {
                 value={item}
                 checked={format === item}
                 onChange={() => setFormat(item as any)}
-                className="accent-[#1F3A93]"
+                className="hidden"
               />
-              {item.toUpperCase()}
+              <span className="text-[10px] sm:text-xs font-bold">{item.toUpperCase()}</span>
             </label>
           ))}
         </div>
@@ -191,7 +203,7 @@ export default function LaporanExport() {
         type="button"
         onClick={handleExport}
         disabled={!!dateError || !from || !to}
-        className="rounded-md bg-[#1F3A93] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#162C6E] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full sm:w-auto rounded-lg bg-[#1F3A93] px-5 py-2 text-[11px] sm:text-xs font-bold text-white shadow-md transition-all hover:bg-[#162C6E] active:scale-95 disabled:opacity-50"
       >
         Export Laporan
       </button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Eye, EyeOff } from "lucide-react";
 
 /* ================= DATA JURUSAN ================= */
 
@@ -51,6 +51,11 @@ export default function ProfilMahasiswaPage() {
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordBaru, setPasswordBaru] = useState("");
+  const [konfirmasiPassword, setKonfirmasiPassword] = useState("");
+  const [error, setError] = useState("");
 
   /* ================= FETCH ================= */
 
@@ -135,6 +140,14 @@ export default function ProfilMahasiswaPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Ukuran foto maksimal 2MB. Tidak bisa menyimpan perubahan.");
+      e.target.value = ""; // Reset input
+      return;
+    }
+
+    setError("");
+
     setFotoFile(file);
     setPreviewFoto(URL.createObjectURL(file));
   };
@@ -142,6 +155,9 @@ export default function ProfilMahasiswaPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
+      setError("");
+
+      // 1. UPDATE PROFIL (Kecuali Password)
       const formData = new FormData();
       formData.append("npm", profil.npm);
       formData.append("jurusan", profil.jurusan || "");
@@ -150,23 +166,48 @@ export default function ProfilMahasiswaPage() {
       formData.append("plat_nomor", profil.plat_nomor || "");
       if (fotoFile) formData.append("foto", fotoFile);
 
-      const res = await fetch("/api/users/profile", {
+      const resProfile = await fetch("/api/users/profile", {
         method: "PUT",
         body: formData,
       });
 
-      if (res.ok) {
-        await fetchProfil(); // Segarkan data
-        setShowToast(true);
-        // Hide toast after 3 seconds
-        setTimeout(() => setShowToast(false), 3000);
-      } else {
-        const errorData = await res.json();
-        alert(errorData.message || "Gagal memperbarui profil");
+      if (!resProfile.ok) {
+        const errorData = await resProfile.json();
+        throw new Error(errorData.message || "Gagal memperbarui profil");
       }
-    } catch (error) {
+
+      // 2. UPDATE PASSWORD (Jika User Mengisi)
+      if (passwordBaru || konfirmasiPassword) {
+        if (passwordBaru !== konfirmasiPassword) {
+          throw new Error("Konfirmasi kata sandi tidak cocok");
+        }
+
+        const resPswd = await fetch("/api/users/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            npm: profil.npm,
+            password_baru: passwordBaru
+          }),
+        });
+
+        const dataPswd = await resPswd.json();
+
+        if (!resPswd.ok) {
+          throw new Error(dataPswd.message || "Gagal mengubah kata sandi");
+        }
+
+        // Reset field password setelah sukses
+        setPasswordBaru("");
+        setKonfirmasiPassword("");
+      }
+
+      await fetchProfil(); // Segarkan data
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error: any) {
       console.error("SAVE PROFIL ERROR:", error);
-      alert("Terjadi kesalahan saat menyimpan profil");
+      alert(error.message || "Terjadi kesalahan saat menyimpan profil");
     } finally {
       setSaving(false);
     }
@@ -207,9 +248,10 @@ export default function ProfilMahasiswaPage() {
 
         <label
           htmlFor="uploadFoto"
-          className="cursor-pointer  text-xs font-semibold text-[#1F3A93] transition"
+          className="cursor-pointer text-xs font-semibold text-[#1F3A93] transition flex flex-col items-center"
         >
-          Ubah Foto
+          <span>Ubah Foto</span>
+          <span className="text-[10px] font-normal text-gray-500 mt-0.5">(Maksimal 2MB)</span>
         </label>
 
         <div
@@ -302,23 +344,50 @@ export default function ProfilMahasiswaPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field
             label="Kata Sandi Baru"
-            type="password"
+            type={showPassword ? "text" : "password"}
             name="password_baru"
+            value={passwordBaru}
+            onChange={(e: any) => setPasswordBaru(e.target.value)}
+            icon={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-gray-500 hover:text-[#1F3A93] focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
           />
           <Field
             label="Konfirmasi Kata Sandi"
-            type="password"
+            type={showConfirm ? "text" : "password"}
             name="konfirmasi_password"
+            value={konfirmasiPassword}
+            onChange={(e: any) => setKonfirmasiPassword(e.target.value)}
+            icon={
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="text-gray-500 hover:text-[#1F3A93] focus:outline-none"
+              >
+                {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
           />
         </div>
       </section>
 
 
       {/* ================= BUTTON ================= */}
-      <div className="flex justify-end pt-4">
+      <div className="flex flex-col items-end gap-2 pt-4">
+        {error && (
+          <p className="text-xs text-red-500 font-medium">
+            {error}
+          </p>
+        )}
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || (!!error && error.includes("2MB"))}
           className="rounded bg-[#1F3A93] px-5 py-2 text-xs font-semibold text-white hover:bg-[#162C6E] transition active:scale-95 disabled:opacity-50 flex items-center gap-2"
         >
           {saving ? "Menyimpan..." : "Simpan"}
@@ -340,14 +409,22 @@ export default function ProfilMahasiswaPage() {
 
 /* ================= FIELD ================= */
 
-function Field({ label, ...props }: any) {
+function Field({ label, icon, ...props }: any) {
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-gray-600">{label}</label>
-      <input
-        {...props}
-        className="w-full rounded border border-gray-300 px-3 py-1.5 text-xs bg-white disabled:bg-gray-100 disabled:text-gray-400"
-      />
+      <div className="relative">
+        <input
+          {...props}
+          className={`w-full rounded border border-gray-300 px-3 py-1.5 text-xs bg-white disabled:bg-gray-100 disabled:text-gray-400 ${icon ? "pr-10" : ""
+            }`}
+        />
+        {icon && (
+          <div className="absolute inset-y-0 right-3 flex items-center">
+            {icon}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { UserCog, Menu, X, BarChart3, Users, ParkingCircle } from "lucide-react";
+import { UserCog, Menu, X, BarChart3, Users, ParkingCircle, LogOut } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 
@@ -26,6 +26,12 @@ export default function AdminNavbar() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("admin_nama");
+    localStorage.removeItem("id_admin");
+    router.replace("/");
+  };
 
 
 
@@ -88,6 +94,14 @@ export default function AdminNavbar() {
             <UserCog size={18} />
             <span>Admin</span>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 hover:text-red-400 transition-colors"
+          >
+            <LogOut size={18} />
+            <span>Keluar</span>
+          </button>
         </div>
       </div>
 
@@ -115,6 +129,16 @@ export default function AdminNavbar() {
               {item.label}
             </Link>
           ))}
+
+          <hr className="border-gray-100 my-1" />
+
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full"
+          >
+            <LogOut size={20} />
+            Keluar
+          </button>
         </div>
       )}
     </nav>

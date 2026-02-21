@@ -21,6 +21,12 @@ export default function LupaPasswordPage() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Format email tidak valid");
+      return;
+    }
+
     try {
       setLoading(true);
 
