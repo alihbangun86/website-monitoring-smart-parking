@@ -46,6 +46,9 @@ const loginAdmin = async (req, res) => {
   }
 };
 
+/* =====================================================
+   VERIFIKASI PENGGUNA + KIRIM EMAIL
+===================================================== */
 const verifikasiPengguna = async (req, res) => {
   try {
     const { npm, status_akun } = req.body;
@@ -57,15 +60,8 @@ const verifikasiPengguna = async (req, res) => {
       });
     }
 
-    if (![1, 3].includes(status_akun)) {
-      return res.status(400).json({
-        status: "error",
-        message: "Status akun tidak valid",
-      });
-    }
-
     const user = await query(
-      "SELECT email, nama FROM pengguna WHERE npm = ?",
+      "SELECT email, nama, status_akun FROM pengguna WHERE npm = ?",
       [npm]
     );
 
@@ -76,18 +72,17 @@ const verifikasiPengguna = async (req, res) => {
       });
     }
 
-    // Update status akun
     await query(
       "UPDATE pengguna SET status_akun = ? WHERE npm = ?",
-      [status_akun, npm]
+      [status_akun ?? 1, npm]
     );
 
-    // ===============================
-    // Jika diverifikasi
-    // ===============================
+    // =====================================================
+    // Jika diverifikasi (status_akun === 1)
+    // 🔥 LOGIC KUOTA DIGANTI MASS INSERT
+    // =====================================================
     if (status_akun === 1) {
 
-      // Insert kuota jika belum ada (langsung mass query)
       await query(`
         INSERT INTO kuota_parkir
         (npm, id_kendaraan, periode_bulan, batas_parkir, jumlah_terpakai, last_reset_date)
@@ -112,9 +107,9 @@ const verifikasiPengguna = async (req, res) => {
       }
     }
 
-    // ===============================
-    // Jika ditolak
-    // ===============================
+    // =====================================================
+    // Jika ditolak (status_akun === 3)
+    // =====================================================
     if (status_akun === 3) {
       try {
         await sendRejectionEmail(
@@ -126,15 +121,17 @@ const verifikasiPengguna = async (req, res) => {
       }
     }
 
+    let successMessage = "Status akun diperbarui";
+    if (status_akun === 1) successMessage = "Akun berhasil diverifikasi";
+    if (status_akun === 3) successMessage = "Pendaftaran berhasil ditolak";
+
+    // 📡 Real-time update
     const io = req.app.get("io");
     if (io) io.emit("user_update", { action: "VERIFY", npm, status: status_akun });
 
     return res.status(200).json({
       status: "success",
-      message:
-        status_akun === 1
-          ? "Akun berhasil diverifikasi"
-          : "Pendaftaran berhasil ditolak",
+      message: successMessage,
     });
 
   } catch (err) {
@@ -145,7 +142,6 @@ const verifikasiPengguna = async (req, res) => {
     });
   }
 };
-
 
 /* =====================================================
    LIST DATA PENGGUNA
