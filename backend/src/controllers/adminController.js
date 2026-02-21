@@ -77,6 +77,8 @@ const verifikasiPengguna = async (req, res) => {
       [status_akun ?? 1, npm]
     );
 
+    // Kirim email verifikasi jika diaktifkan (status_akun === 1)
+
     // =====================================================
     // Jika diverifikasi (status_akun === 1)
     // 🔥 LOGIC KUOTA DIGANTI MASS INSERT
