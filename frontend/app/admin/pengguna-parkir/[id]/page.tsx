@@ -43,7 +43,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const detailRef = useRef<any>(null);
   const riwayatRef = useRef<any>(null);
 
-  // Pagination State
+
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
   const [limit, setLimit] = useState(10);
@@ -114,7 +114,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     return () => controller.abort();
   }, [fetchRiwayat, npm, page, limit]);
 
-  // ⏲️ Timer Logic untuk Scan
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showScanModal && timeLeft > 0 && scanResult.status === "menunggu") {
@@ -128,39 +128,52 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     return () => clearInterval(timer);
   }, [showScanModal, timeLeft, scanResult.status]);
 
-  // 📡 Real-time Socket.io listener untuk RFID & Riwayat Parkir
   useEffect(() => {
-    const socketHost = window.location.hostname === "localhost"
-      ? "http://localhost:5000"
-      : `http://${window.location.hostname}:5000`;
+    const socketHost =
+      window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "https://api.smartpark.my.id";
 
-    const socket = io(socketHost);
-
-    socket.on("connect", () => {
-      console.log("✅ Detail Page Socket Connected");
+    const socket = io(socketHost, {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 2000,
+      timeout: 20000,
     });
 
-    // 1. Listen for RFID Scan (Registration)
-    socket.on("rfid_scanned", (payload: any) => {
-      console.log("📡 RFID Scan Received:", payload);
-      if (detailRef.current) detailRef.current();
+    socket.on("connect", () => {
+      console.log("Detail Page Socket Connected:", socket.id);
+    });
 
-      // ✅ Update modal jika sedang aktif
-      setScanResult({ status: "berhasil", message: "Kartu RFID Berhasil Didaftarkan!" });
+    socket.on("rfid_scanned", (payload: any) => {
+      console.log("RFID Scan Received:", payload);
+      detailRef.current?.();
+
+      setScanResult({
+        status: "berhasil",
+        message: "Kartu RFID Berhasil Didaftarkan!",
+      });
+
       setTimeout(() => {
         setShowScanModal(false);
         setScanResult({ status: "menunggu", message: "" });
       }, 2500);
     });
 
-    // 2. Listen for Entry/Exit (Log Parking)
+
     socket.on("parking_update", (payload: any) => {
-      console.log("🚗 Parking activity detected:", payload);
-      if (detailRef.current) detailRef.current();
-      if (riwayatRef.current) riwayatRef.current();
+      console.log("Parking activity detected:", payload);
+      detailRef.current?.();
+      riwayatRef.current?.();
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Socket Error:", err.message);
     });
 
     return () => {
+      socket.removeAllListeners();
       socket.disconnect();
     };
   }, []);
@@ -214,7 +227,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
       const data = await res.json();
       if (res.ok && data.status === "success") {
-        // 🚀 Aktifkan Modal Scan
         setScanResult({ status: "menunggu", message: "Silakan tempelkan kartu ke alat scan" });
         setTimeLeft(60);
         setShowScanModal(true);
@@ -254,7 +266,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
   const handleUpdateStatus = async (status: number) => {
     let msg = "Aktifkan akun ini?";
-    if (status === 2) msg = "Blokir akun ini?";
+    if (status === 2) msg = "Batasi akun ini?";
     if (status === 3) msg = "Tolak pendaftaran akun ini?";
 
     const confirmAction = window.confirm(msg);
@@ -298,7 +310,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto w-full space-y-6">
-      {/* 🟢 MODAL SCAN RFID */}
       {showScanModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
@@ -356,10 +367,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      {/* SINGLE CARD CONTAINER */}
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
 
-        {/* TOP BAR: KEMBALI + ACTIONS */}
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <button
             onClick={() => router.back()}
@@ -396,7 +405,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 className="flex items-center gap-2 rounded-md bg-orange-500 px-4 py-2 text-xs md:text-sm font-semibold text-white hover:bg-orange-600 transition shadow-sm"
               >
                 <Ban size={16} />
-                Blokir Pengguna
+                Batasi Pengguna
               </button>
             )}
 
@@ -410,12 +419,9 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        {/* ================= IDENTITAS ================= */}
         <div className="flex flex-col items-center gap-6 md:flex-row md:items-start md:gap-8">
 
-          {/* KOLOM FOTO & STATUS */}
           <div className="flex flex-col items-center gap-3">
-            {/* Foto Profile */}
             <div className="h-32 w-32 md:h-32 md:w-32 overflow-hidden rounded-full border-2 border-[#1F3A93] bg-gray-100 flex-shrink-0 shadow-sm">
               {profil.foto ? (
                 <img
@@ -430,7 +436,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               )}
             </div>
 
-            {/* Status Aktif */}
             <span
               className={`rounded-full px-4 py-1.5 text-xs font-bold shadow-sm
                 ${profil.status_akun === 1
@@ -442,11 +447,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                       : "bg-red-100 text-red-700"
                 }`}
             >
-              {profil.status_akun === 1 ? "Aktif" : profil.status_akun === 2 ? "Diblokir" : profil.status_akun === 3 ? "Ditolak" : "Menunggu"}
+              {profil.status_akun === 1 ? "Aktif" : profil.status_akun === 2 ? "Dibatasi" : profil.status_akun === 3 ? "Ditolak" : "Menunggu"}
             </span>
           </div>
 
-          {/* TEXT DETAILS */}
           <div className="flex-1 space-y-2 text-center md:text-left pt-2 text-sm">
             <p className="text-xl font-bold text-gray-800">{profil.nama}</p>
             <p className="text-sm font-semibold text-[#1F3A93]">{profil.npm}</p>
@@ -457,71 +461,79 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
         <div className="my-8 h-px bg-gray-100" />
 
-        {/* ================= INFORMASI TEKNIS ================= */}
         {profil.status_akun !== 3 ? (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-            <Info label="Nomor Kendaraan" value={profil.plat_nomor || "-"} />
+          <>
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+              <Info label="Nomor Kendaraan" value={profil.plat_nomor || "-"} />
 
-            <div className="space-y-2">
-              <Info label="Kode RFID" value={profil.kode_rfid || "Belum Terdaftar"} />
-              <div className="flex flex-col gap-2 mt-2">
-                <div className="flex items-center gap-2">
+              <div className="space-y-2">
+                <Info label="Kode RFID" value={profil.kode_rfid || "Belum Terdaftar"} />
+                <div className="flex flex-col gap-2 mt-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Input Manual"
+                      value={editRfid}
+                      onChange={(e) => setEditRfid(e.target.value)}
+                      className="w-full sm:w-32 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-[#1F3A93]"
+                    />
+                    <button
+                      onClick={handleUpdateRfid}
+                      className="rounded bg-[#1F3A93] px-3 py-1 text-[10px] font-bold text-white hover:bg-[#162C6E]"
+                    >
+                      SET
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleStartScan}
+                    disabled={scanLoading}
+                    className={`rounded border-2 border-[#1F3A93] px-3 py-1.5 text-[10px] font-bold transition
+                    ${scanLoading ? "bg-gray-100 text-gray-400 border-gray-300" : "text-[#1F3A93] hover:bg-[#1F3A93] hover:text-white"}`}
+                  >
+                    {scanLoading ? "MENYIAPKAN ALAT..." : "SCAN KARTU (OTOMATIS)"}
+                  </button>
+
+                  <p className="text-[9px] text-gray-400 italic font-medium">
+                    *Gunakan alat untuk scan otomatis (aktif 60 dtk)
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Info label="Sisa Kesempatan Parkir" value={`${profil.sisa_kuota ?? 0} Kali`} />
+                <div className="flex items-center gap-2 mt-2">
                   <input
-                    type="text"
-                    placeholder="Input Manual"
-                    value={editRfid}
-                    onChange={(e) => setEditRfid(e.target.value)}
-                    className="w-full sm:w-32 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-[#1F3A93]"
+                    type="number"
+                    placeholder="Set Batas"
+                    value={editKuota}
+                    onChange={(e) => setEditKuota(e.target.value)}
+                    className="w-full sm:w-24 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-[#1F3A93]"
                   />
                   <button
-                    onClick={handleUpdateRfid}
+                    onClick={handleUpdateKuota}
                     className="rounded bg-[#1F3A93] px-3 py-1 text-[10px] font-bold text-white hover:bg-[#162C6E]"
                   >
                     SET
                   </button>
                 </div>
-
-                <button
-                  onClick={handleStartScan}
-                  disabled={scanLoading}
-                  className={`rounded border-2 border-[#1F3A93] px-3 py-1.5 text-[10px] font-bold transition
-                    ${scanLoading ? "bg-gray-100 text-gray-400 border-gray-300" : "text-[#1F3A93] hover:bg-[#1F3A93] hover:text-white"}`}
-                >
-                  {scanLoading ? "MENYIAPKAN ALAT..." : "SCAN KARTU (OTOMATIS)"}
-                </button>
-                <p className="text-[9px] text-gray-400 italic font-medium">*Gunakan alat untuk scan otomatis (aktif 60 dtk)</p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Info label="Sisa Kesempatan Parkir" value={`${profil.sisa_kuota ?? 0} Kali`} />
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="number"
-                  placeholder="Set Batas"
-                  value={editKuota}
-                  onChange={(e) => setEditKuota(e.target.value)}
-                  className="w-full sm:w-24 rounded border border-gray-300 px-2 py-1 text-xs focus:outline-[#1F3A93]"
-                />
-                <button
-                  onClick={handleUpdateKuota}
-                  className="rounded bg-[#1F3A93] px-3 py-1 text-[10px] font-bold text-white hover:bg-[#162C6E]"
-                >
-                  SET
-                </button>
-              </div>
-              <p className="text-[9px] text-gray-400 italic font-medium">*Mengubah seluruh batas</p>
-            </div>
-          </div>
+            <div className="my-8 h-px bg-gray-100" />
+          </>
         ) : (
-          <div className="rounded-lg bg-red-50 p-4 text-center">
-            <p className="text-sm font-semibold text-red-600">Pendaftaran ditolak. Silakan hapus data ini atau hubungi mahasiswa untuk daftar ulang.</p>
-          </div>
+          <>
+            <div className="rounded-lg bg-red-50 p-4 text-center">
+              <p className="text-sm font-semibold text-red-600">
+                Pendaftaran ditolak. Silakan hapus data ini atau hubungi mahasiswa untuk daftar ulang.
+              </p>
+            </div>
+
+            <div className="my-8 h-px bg-gray-100" />
+          </>
         )}
 
-        <div className="my-8 h-px bg-gray-100" />
-
-        {/* ================= STNK ================= */}
         <div className="space-y-4">
           <h2 className="text-sm font-semibold text-gray-800">
             Lampiran STNK
@@ -541,7 +553,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 rel="noopener noreferrer"
                 className="rounded bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-100 transition"
               >
-                Buka Gambar Penuh ↗
+                Buka Gambar Penuh
               </a>
             </div>
           ) : (
@@ -551,7 +563,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
 
         <div className="my-8 h-px bg-gray-100" />
 
-        {/* ================= RIWAYAT PER USER ================= */}
         <div className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold text-gray-800">
@@ -634,7 +645,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
             </table>
           </div>
 
-          {/* PAGINATION */}
           <div className="mt-4 flex items-center justify-between">
             <p className="text-xs text-gray-500">
               Menampilkan {riwayat.length > 0 ? (page - 1) * limit + 1 : 0} -{" "}
@@ -664,7 +674,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   );
 }
 
-/* ================= REUSABLE INFO ================= */
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1">

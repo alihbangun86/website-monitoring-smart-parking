@@ -26,7 +26,6 @@ export default function AdminDashboardPage() {
   const [newSlot, setNewSlot] = useState<number | "">(0);
   const [updatingSlot, setUpdatingSlot] = useState<boolean>(false);
 
-  // Ref untuk menyimpan fungsi fetch terbaru agar tidak memicu reconnnect socket
   const fetchRef = useRef<any>(null);
 
   const fetchSummary = useCallback(async (signal?: AbortSignal) => {
@@ -58,7 +57,6 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Update ref setiap kali fetchSummary berubah
   useEffect(() => {
     fetchRef.current = fetchSummary;
   }, [fetchSummary]);
@@ -101,7 +99,6 @@ export default function AdminDashboardPage() {
   }, [fetchSummary]);
 
   useEffect(() => {
-    // Dynamic Host for Socket.io
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
       : `http://${window.location.hostname}:5000`;
@@ -109,28 +106,28 @@ export default function AdminDashboardPage() {
     const socket = io(socketHost);
 
     socket.on("connect", () => {
-      console.log("✅ Dashboard Socket Connected");
+      console.log("Dashboard Socket Connected");
     });
 
     socket.on("parking_update", (payload: any) => {
-      console.log("📊 Dashboard update received (parking):", payload);
+      console.log("Dashboard update received (parking):", payload);
       if (fetchRef.current) fetchRef.current();
       setRefreshKey(prev => prev + 1);
     });
 
     socket.on("user_update", (payload: any) => {
-      console.log("👥 Dashboard update received (user):", payload);
+      console.log("Dashboard update received (user):", payload);
       if (fetchRef.current) fetchRef.current();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("❌ Dashboard Socket Error:", err);
+      console.error("Dashboard Socket Error:", err);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, []); // Dependency kosong
+  }, []);
 
   if (loading) {
     return (
@@ -144,9 +141,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* ================= STAT CARD ================= */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
-        {/* CUSTOM SLOT CARD WITH INLINE EDIT */}
         <div className="rounded-xl bg-gray-200 p-3 md:p-5 shadow-sm transition hover:shadow-md">
           <p className="text-xs md:text-sm font-semibold text-gray-700">Total Slot</p>
           <div className="mt-2 flex items-center justify-between gap-2">
@@ -157,7 +152,6 @@ export default function AdminDashboardPage() {
               <span className="text-xs md:text-sm font-medium text-gray-600">Slot</span>
             </div>
 
-            {/* INLINE EDIT FORM */}
             <div className="flex items-center gap-1">
               <input
                 type="number"
@@ -182,12 +176,10 @@ export default function AdminDashboardPage() {
         <StatCard title="Pengguna Aktif" value={summary.pengguna_aktif} unit="Pengguna" />
       </div>
 
-      {/* ================= STATISTIK ================= */}
       <div className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-4 md:p-6">
         <StatistikKendaraan refreshKey={refreshKey} />
       </div>
 
-      {/* ================= DATA PARKIR ================= */}
       <DataKendaraanParkir />
     </div>
   );

@@ -3,22 +3,24 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
 
-    const periode = searchParams.get("periode") || "harian";
-    const from = searchParams.get("from");
-    const to = searchParams.get("to");
+    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/parkir/export/pdf`);
+    url.search = searchParams.toString();
 
-    let url = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/parkir/export/pdf?periode=${periode}`;
+    const res = await fetch(url.toString(), { cache: "no-store" });
 
-    if (from && to) {
-        url += `&from=${from}&to=${to}`;
+    if (!res.ok) {
+        return new NextResponse(await res.text(), {
+            status: res.status,
+            headers: { "Content-Type": "text/plain" }
+        });
     }
 
-    const res = await fetch(url, { cache: "no-store" });
     const blob = await res.blob();
+    const headers = new Headers();
+    headers.set("Content-Type", "application/pdf");
 
-    return new NextResponse(blob, {
-        headers: {
-            "Content-Type": "application/pdf",
-        },
-    });
+    const contentDisp = res.headers.get("Content-Disposition");
+    if (contentDisp) headers.set("Content-Disposition", contentDisp);
+
+    return new NextResponse(blob, { headers });
 }

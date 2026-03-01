@@ -12,7 +12,6 @@ type DashboardSummary = {
 };
 
 export default function DataParkirAdminPage() {
-  // ================= STATE =================
   const [summary, setSummary] = useState<DashboardSummary>({
     total_slot: 0,
     terisi: 0,
@@ -27,7 +26,6 @@ export default function DataParkirAdminPage() {
 
   const fetchRef = useRef<any>(null);
 
-  // ================= FETCH SUMMARY =================
   const fetchSummary = useCallback(async (signal?: AbortSignal) => {
     try {
       const res = await fetch("/api/admin/dashboard/summary", {
@@ -60,39 +58,46 @@ export default function DataParkirAdminPage() {
   }, [fetchSummary]);
 
   useEffect(() => {
-    // Dynamic Host for Socket.io
-    const socketHost = window.location.hostname === "localhost"
-      ? "http://localhost:5000"
-      : `http://${window.location.hostname}:5000`;
+    const socketHost =
+      window.location.hostname === "localhost"
+        ? "http://localhost:5000"
+        : "https://api.smartpark.my.id";
 
-    const socket = io(socketHost);
+    const socket = io(socketHost, {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 2000,
+      timeout: 20000,
+    });
 
     socket.on("connect", () => {
-      console.log("✅ Data Parkir Socket Connected");
+      console.log("Data Parkir Socket Connected:", socket.id);
     });
 
-    socket.on("parking_update", (payload: any) => {
-      console.log("📊 Data Parkir summary update received (parking):", payload);
-      if (fetchRef.current) fetchRef.current();
+    socket.on("parking_update", () => {
+      console.log("Parking update received");
+      fetchRef.current?.();
     });
 
-    socket.on("user_update", (payload: any) => {
-      console.log("👥 Data Parkir summary update received (user):", payload);
-      if (fetchRef.current) fetchRef.current();
+    socket.on("user_update", () => {
+      console.log("User update received");
+      fetchRef.current?.();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("❌ Data Parkir Socket Error:", err);
+      console.error("Socket Error:", err.message);
     });
 
     return () => {
+      socket.removeAllListeners();
       socket.disconnect();
     };
   }, []);
 
   return (
     <div className="space-y-6">
-      {/* ================= STAT CARD ================= */}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           title="Total Slot"
@@ -111,10 +116,8 @@ export default function DataParkirAdminPage() {
         />
       </div>
 
-      {/* ================= FILTER ================= */}
       <section className="rounded-xl border border-gray-300 bg-[#E9EBEE] p-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* SEARCH */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-700">
               Cari Nama / Nomor Kendaraan
@@ -129,7 +132,7 @@ export default function DataParkirAdminPage() {
             />
           </div>
 
-          {/* TANGGAL MULAI */}
+
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-700">
               Tanggal Mulai
@@ -143,7 +146,7 @@ export default function DataParkirAdminPage() {
             />
           </div>
 
-          {/* TANGGAL SAMPAI */}
+
           <div>
             <label className="mb-1 block text-xs font-semibold text-gray-700">
               Tanggal Sampai
@@ -159,14 +162,14 @@ export default function DataParkirAdminPage() {
         </div>
       </section>
 
-      {/* ================= DATA PARKIR ================= */}
+
       <DataKendaraanParkir
         search={search}
         startDate={startDate}
         endDate={endDate}
       />
 
-      {/* ================= SPACER ================= */}
+
       <div className="h-10" />
     </div>
   );

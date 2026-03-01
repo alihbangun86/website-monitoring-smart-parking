@@ -2,9 +2,9 @@ const { query } = require("../config/database");
 const PDFDocument = require("pdfkit");
 const { sendVerificationEmail, sendRejectionEmail } = require("../utils/email");
 
-/* =====================================================
-   LOGIN ADMIN
-===================================================== */
+/*LOGIN ADMIN */
+const jwt = require("jsonwebtoken");
+
 const loginAdmin = async (req, res) => {
   try {
     const { nama, password } = req.body;
@@ -28,14 +28,21 @@ const loginAdmin = async (req, res) => {
       });
     }
 
-    return res.status(200).json({
-      status: "success",
-      message: "Login admin berhasil",
-      data: {
+    // BUAT TOKEN
+    const token = jwt.sign(
+      {
         id_admin: rows[0].id_admin,
         nama: rows[0].nama,
         role: "admin",
       },
+      "SECRET_KEY_ADMIN", // ganti pakai env nanti
+      { expiresIn: "8h" }
+    );
+
+    return res.status(200).json({
+      status: "success",
+      message: "Login admin berhasil",
+      token,
     });
   } catch (err) {
     console.error("loginAdmin:", err);
@@ -46,9 +53,7 @@ const loginAdmin = async (req, res) => {
   }
 };
 
-/* =====================================================
-   VERIFIKASI PENGGUNA + KIRIM EMAIL
-===================================================== */
+/*VERIFIKASI PENGGUNA + KIRIM EMAIL*/
 const verifikasiPengguna = async (req, res) => {
   try {
     const { npm, status_akun } = req.body;
@@ -78,11 +83,7 @@ const verifikasiPengguna = async (req, res) => {
     );
 
     // Kirim email verifikasi jika diaktifkan (status_akun === 1)
-
-    // =====================================================
-    // Jika diverifikasi (status_akun === 1)
-    // 🔥 LOGIC KUOTA DIGANTI MASS INSERT
-    // =====================================================
+    // diverifikasi (status_akun === 1)
     if (status_akun === 1) {
 
       await query(`
@@ -109,9 +110,7 @@ const verifikasiPengguna = async (req, res) => {
       }
     }
 
-    // =====================================================
-    // Jika ditolak (status_akun === 3)
-    // =====================================================
+    //ditolak (status_akun === 3)
     if (status_akun === 3) {
       try {
         await sendRejectionEmail(
@@ -145,42 +144,49 @@ const verifikasiPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   LIST DATA PENGGUNA
-===================================================== */
 const getDataPengguna = async (req, res) => {
   try {
     const { search, limit, offset, status } = req.query;
-    const safeLimit = parseInt(limit) || 10;
-    const safeOffset = parseInt(offset) || 0;
+
+    const safeLimit = Number(limit) > 0 ? Number(limit) : 10;
+    const safeOffset = Number(offset) >= 0 ? Number(offset) : 0;
 
     let whereClauses = [];
     let params = [];
 
-    if (search) {
+    // SEARCH
+    if (search && search.trim() !== "") {
       whereClauses.push("(p.nama LIKE ? OR p.npm LIKE ? OR k.plat_nomor LIKE ?)");
       params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
 
-    if (status) {
+    // STATUS FILTER
+    if (status !== undefined && status !== "") {
       whereClauses.push("p.status_akun = ?");
-      params.push(status);
+      params.push(Number(status));
     }
 
-    const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+    const whereSql =
+      whereClauses.length > 0
+        ? `WHERE ${whereClauses.join(" AND ")}`
+        : "";
 
-    // 1️⃣ Hitung total (untuk pagination)
-    const [countResult] = await query(`
+    //TOTAL DATA
+    const countRows = await query(
+      `
       SELECT COUNT(*) as total
       FROM pengguna p
       LEFT JOIN kendaraan k ON p.npm = k.npm
       ${whereSql}
-    `, params);
+      `,
+      params
+    );
 
-    const totalData = countResult ? countResult.total : 0;
+    const totalData = countRows[0]?.total || 0;
 
-    // 2️⃣ Ambil data paginasi
-    const rows = await query(`
+    // DATA PAGINASI
+    const rows = await query(
+      `
       SELECT 
         p.npm,
         p.nama,
@@ -191,29 +197,41 @@ const getDataPengguna = async (req, res) => {
         k.plat_nomor,
         k.stnk,
         COALESCE(
-          (SELECT batas_parkir FROM kuota_parkir WHERE npm = p.npm ORDER BY id_kuota DESC LIMIT 1),
-          (SELECT batas_parkir FROM kuota_parkir WHERE npm IS NULL ORDER BY id_kuota DESC LIMIT 1), 
+          (SELECT batas_parkir 
+          FROM kuota_parkir 
+          WHERE npm = p.npm 
+          ORDER BY id_kuota DESC 
+          LIMIT 1),
+          (SELECT batas_parkir 
+          FROM kuota_parkir 
+          WHERE npm IS NULL 
+          ORDER BY id_kuota DESC 
+          LIMIT 1),
           0
         ) - (
           SELECT COUNT(*) 
           FROM log_parkir l2 
-          JOIN kendaraan k2 ON l2.id_kendaraan = k2.id_kendaraan 
+          JOIN kendaraan k2 
+            ON l2.id_kendaraan = k2.id_kendaraan 
           WHERE k2.npm = p.npm
         ) AS sisa_kuota
       FROM pengguna p
       LEFT JOIN kendaraan k ON p.npm = k.npm
       ${whereSql}
       ORDER BY p.nama ASC
-      LIMIT ? OFFSET ?
-    `, [...params, safeLimit, safeOffset]);
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
+      `,
+      params
+    );
 
     return res.status(200).json({
       status: "success",
       data: rows,
       total: totalData,
     });
+
   } catch (err) {
-    console.error("getDataPengguna:", err);
+    console.error("getDataPengguna ERROR:", err);
     return res.status(500).json({
       status: "error",
       message: "Gagal mengambil data pengguna",
@@ -221,12 +239,8 @@ const getDataPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   HAPUS PENGGUNA
-===================================================== */
-/* =====================================================
-   HAPUS PENGGUNA (CASCADE MANUAL)
-===================================================== */
+/*HAPUS PENGGUNA*/
+/*HAPUS PENGGUNA (CASCADE MANUAL)*/
 const hapusPengguna = async (req, res) => {
   try {
     const { npm } = req.params;
@@ -238,25 +252,25 @@ const hapusPengguna = async (req, res) => {
       });
     }
 
-    // 1. Hapus Log Parkir (Linked to Kendaraan)
+    //Hapus Log Parkir (Linked to Kendaraan)
     await query(
       "DELETE FROM log_parkir WHERE id_kendaraan IN (SELECT id_kendaraan FROM kendaraan WHERE npm = ?)",
       [npm]
     );
 
-    // 2. Hapus RFID (Linked to Kendaraan)
+    //Hapus RFID (Linked to Kendaraan)
     await query(
       "DELETE FROM rfid WHERE id_kendaraan IN (SELECT id_kendaraan FROM kendaraan WHERE npm = ?)",
       [npm]
     );
 
-    // 3. Hapus Kendaraan
+    //Hapus Kendaraan
     await query("DELETE FROM kendaraan WHERE npm = ?", [npm]);
 
-    // 4. Hapus Kuota Parkir Khusus
+    //Hapus Kuota Parkir Khusus
     await query("DELETE FROM kuota_parkir WHERE npm = ?", [npm]);
 
-    // 5. Akhirnya Hapus Pengguna
+    //Akhirnya Hapus Pengguna
     const result = await query("DELETE FROM pengguna WHERE npm = ?", [npm]);
 
     if (result.affectedRows === 0) {
@@ -266,7 +280,7 @@ const hapusPengguna = async (req, res) => {
       });
     }
 
-    // 📡 Real-time update untuk Admin
+    //Real-time update untuk Admin
     const io = req.app.get("io");
     if (io) io.emit("user_update", { action: "DELETE", npm });
 
@@ -284,12 +298,10 @@ const hapusPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   GENERATE RFID - FINAL VERSION (CLEAN & PRODUCTION READY)
-===================================================== */
+/*GENERATE RFID*/
 const generateRFID = async (req, res) => {
   try {
-    console.log("📥 generateRFID BODY:", req.body);
+    console.log("generateRFID BODY:", req.body);
 
     if (!req.body) {
       return res.status(400).json({
@@ -300,14 +312,10 @@ const generateRFID = async (req, res) => {
 
     const { id_kendaraan, kode_rfid, id_admin } = req.body;
 
-    /* =================================================
-       BERSIHKAN SESSION EXPIRED (AUTO CLEANUP)
-    ================================================= */
+    /*BERSIHKAN SESSION EXPIRED*/
     await query("DELETE FROM rfid_registration_session WHERE expired_at < NOW()");
 
-    /* =================================================
-       MODE 1: MANAJEMEN MANUAL (Admin isi langsung)
-    ================================================= */
+    /*MODE 1: MANAJEMEN MANUAL*/
     if (id_kendaraan && kode_rfid) {
 
       const existing = await query(
@@ -345,9 +353,7 @@ const generateRFID = async (req, res) => {
       });
     }
 
-    /* =================================================
-       MODE 2: ADMIN MULAI SESI (Buka window 60 detik)
-    ================================================= */
+    /*MODE 2: ADMIN MULAI SESI (Buka window 60 detik)*/
     if (id_kendaraan && id_admin && !kode_rfid) {
 
       const kendaraan = await query(
@@ -377,9 +383,7 @@ const generateRFID = async (req, res) => {
       });
     }
 
-    /* =================================================
-       MODE 3: ALAT KIRIM SCAN
-    ================================================= */
+    /*MODE 3: ALAT KIRIM SCAN */
     if (kode_rfid && !id_kendaraan) {
 
       const session = await query(`
@@ -415,9 +419,7 @@ const generateRFID = async (req, res) => {
         );
       }
 
-      /* ===============================================
-         HAPUS SESSION SETELAH SUKSES (CLEAN DATABASE)
-      =============================================== */
+      /*HAPUS SESSION SETELAH SUKSES*/
       await query(
         "DELETE FROM rfid_registration_session WHERE id_session = ?",
         [id_session]
@@ -444,7 +446,7 @@ const generateRFID = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("🔥 generateRFID Error:", err);
+    console.error("generateRFID Error:", err);
     return res.status(500).json({
       status: "error",
       message: "Server error",
@@ -453,9 +455,7 @@ const generateRFID = async (req, res) => {
   }
 };
 
-/* =====================================================
-   DASHBOARD SUMMARY
-===================================================== */
+/*DASHBOARD SUMMARY*/
 const dashboardSummary = async (req, res) => {
   try {
     const [slotResults, terisiResults, aktifResults, kuotaResults] = await Promise.all([
@@ -482,7 +482,7 @@ const dashboardSummary = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("🔥 dashboardSummary ERROR:", err);
+    console.error("dashboardSummary ERROR:", err);
     return res.status(500).json({
       status: "error",
       message: "Server error",
@@ -490,9 +490,7 @@ const dashboardSummary = async (req, res) => {
   }
 };
 
-/* =====================================================
-   LIST DATA PARKIR
-===================================================== */
+/*LIST DATA PARKIR*/
 const getDataParkir = async (req, res) => {
   try {
     const { search, start, end, limit, offset } = req.query;
@@ -519,7 +517,7 @@ const getDataParkir = async (req, res) => {
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-    // 1️⃣ HITUNG TOTAL DATA (UNTUK PAGINATION)
+    //HITUNG TOTAL DATA (UNTUK PAGINATION)
     const [countResult] = await query(`
       SELECT COUNT(*) as total
       FROM log_parkir l
@@ -530,7 +528,7 @@ const getDataParkir = async (req, res) => {
 
     const totalData = countResult ? countResult.total : 0;
 
-    // 2️⃣ AMBIL DATA HALAMAN INI
+    // AMBIL DATA HALAMAN
     const rows = await query(`
       SELECT 
         p.npm,
@@ -544,8 +542,8 @@ const getDataParkir = async (req, res) => {
       LEFT JOIN pengguna p ON k.npm = p.npm
       ${whereSql}
       ORDER BY l.waktu_masuk DESC
-      LIMIT ? OFFSET ?
-    `, [...params, safeLimit, safeOffset]);
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
+    `, params);
 
     const formattedData = rows.map(r => {
       const masukDate = r.waktu_masuk ? new Date(r.waktu_masuk) : null;
@@ -580,9 +578,7 @@ const getDataParkir = async (req, res) => {
 };
 
 
-/* =====================================================
-   EXPORT PDF PARKIR
-===================================================== */
+/*EXPORT PDF PARKIR*/
 const exportParkirPDF = async (req, res) => {
   try {
     const rows = await query(`
@@ -629,9 +625,7 @@ const exportParkirPDF = async (req, res) => {
   }
 };
 
-/* =====================================================
-   UPDATE KUOTA PARKIR (INDIVIDUAL)
-===================================================== */
+/*UPDATE KUOTA PARKIR (INDIVIDU)*/
 const updateKuotaParkir = async (req, res) => {
   try {
     const { batas_parkir, npm } = req.body;
@@ -687,9 +681,7 @@ const updateKuotaParkir = async (req, res) => {
   }
 };
 
-/* =====================================================
-   UPDATE SLOT PARKIR (TOTAL)
-===================================================== */
+/*UPDATE SLOT PARKIR*/
 const updateSlotParkir = async (req, res) => {
   try {
     const { jumlah, id_admin } = req.body;

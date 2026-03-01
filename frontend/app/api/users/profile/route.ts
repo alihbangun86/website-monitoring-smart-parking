@@ -31,7 +31,7 @@ export async function PUT(req: NextRequest) {
         const incomingFormData = await req.formData();
         const outgoingFormData = new FormData();
 
-        // Salalin semua field dari incoming ke outgoing
+
         incomingFormData.forEach((value, key) => {
             outgoingFormData.append(key, value);
         });

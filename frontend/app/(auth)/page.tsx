@@ -9,7 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [identifier, setIdentifier] = useState(""); // NPM / Nama Admin
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,21 +22,23 @@ export default function LoginPage() {
       return;
     }
 
+    if (password.length < 8) {
+      alert("Kata sandi minimal harus 8 karakter");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Endpoint logic
       const isMahasiswa = /^\d+$/.test(identifier);
 
       let endpoint = "";
       let payload = {};
 
       if (isMahasiswa) {
-        // MAHASISWA LOGIN via Next.js API Route
         endpoint = "/api/auth/login";
         payload = { npm: identifier, password };
       } else {
-        // ADMIN LOGIN via Backend Direct
         endpoint = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/login`;
         payload = { nama: identifier, password };
       }
@@ -57,14 +59,11 @@ export default function LoginPage() {
       }
 
       if (isMahasiswa) {
-        // ✅ SIMPAN NPM UNTUK MAHASISWA
-        // Perhatikan structure data yang dikembalikan oleh route handler /api/auth/login
         if (data.data && data.data.npm) {
           localStorage.setItem("npm", data.data.npm);
         }
         router.push("/mahasiswa");
       } else {
-        // ✅ SIMPAN TOKEN / DATA UNTUK ADMIN
         if (data.data && data.data.nama) {
           localStorage.setItem("admin_nama", data.data.nama);
           localStorage.setItem("id_admin", data.data.id_admin);
@@ -82,7 +81,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#E9EBEE] px-4">
       <div className="w-full max-w-sm rounded-xl border border-[#1F3A93] bg-white p-6 shadow-md">
-        {/* LOGO */}
         <div className="mb-4 flex justify-center">
           <Image
             src="/logo-unila.png"
@@ -92,8 +90,6 @@ export default function LoginPage() {
             priority
           />
         </div>
-
-        {/* TITLE */}
         <h2 className="mb-2 text-center text-lg font-semibold text-[#1F3A93]">
           Masuk
         </h2>
@@ -101,7 +97,6 @@ export default function LoginPage() {
           Sistem Monitoring Parkir Teknik Geodesi
         </p>
 
-        {/* FORM */}
         <form className="space-y-4" onSubmit={handleLogin}>
           <input
             type="text"
@@ -140,7 +135,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* LINKS */}
         <div className="mt-4 text-center text-xs">
           <Link
             href="/lupa-password"

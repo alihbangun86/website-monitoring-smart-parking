@@ -4,14 +4,14 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // ===== ambil query dari FE =====
+
     const limit = searchParams.get("limit") || "10";
     const offset = searchParams.get("offset") || "0";
     const search = searchParams.get("search") || "";
     const start = searchParams.get("start") || "";
     const end = searchParams.get("end") || "";
 
-    // ===== bangun query ke BE =====
+
     const params = new URLSearchParams({
       limit,
       offset,
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/admin/parkir?${params.toString()}`;
 
-    // ===== fetch ke backend =====
+
     const res = await fetch(backendUrl, {
       cache: "no-store",
     });
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
     const data = await res.json();
 
-    // ===== langsung teruskan response backend =====
+
     return NextResponse.json(data);
   } catch (error) {
     console.error("API FE PARKIR ERROR:", error);

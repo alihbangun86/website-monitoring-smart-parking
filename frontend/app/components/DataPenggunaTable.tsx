@@ -9,7 +9,7 @@ type User = {
   npm: string;
   nama: string;
   plat_nomor: string | null;
-  status_akun: number | null; // 1 aktif, 0 menunggu, 2 diblokir
+  status_akun: number | null;
   stnk: string | null;
   sisa_kuota: number;
 };
@@ -27,7 +27,6 @@ export default function DataPenggunaTable({
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Pagination State
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
@@ -45,7 +44,6 @@ export default function DataPenggunaTable({
         search: search,
       });
 
-      // Convert status text to number for backend
       if (statusFilter) {
         const val =
           statusFilter === "aktif" ? "1" :
@@ -76,7 +74,6 @@ export default function DataPenggunaTable({
     }
   }, [page, limit, search, statusFilter]);
 
-  // Update ref
   useEffect(() => {
     fetchRef.current = fetchUsers;
   }, [fetchUsers]);
@@ -85,14 +82,11 @@ export default function DataPenggunaTable({
     setPage(1);
   }, [search, statusFilter, limit]);
 
-  // Hook fetch data
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // Hook Socket - Sekali pas mount
   useEffect(() => {
-    // Dynamic Host for Socket.io
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
       : `http://${window.location.hostname}:5000`;
@@ -100,21 +94,21 @@ export default function DataPenggunaTable({
     const socket = io(socketHost);
 
     socket.on("connect", () => {
-      console.log("✅ User Table Socket Connected");
+      console.log("User Table Socket Connected");
     });
 
     socket.on("parking_update", (payload: any) => {
-      console.log("🔄 Real-time table update (parking):", payload);
+      console.log("Real-time table update (parking):", payload);
       if (fetchRef.current) fetchRef.current();
     });
 
     socket.on("user_update", (payload: any) => {
-      console.log("👥 Real-time table update (user):", payload);
+      console.log("Real-time table update (user):", payload);
       if (fetchRef.current) fetchRef.current();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("❌ User Table Socket Error:", err);
+      console.error("User Table Socket Error:", err);
     });
 
     return () => {
@@ -172,10 +166,8 @@ export default function DataPenggunaTable({
     }
   };
 
-  // Hitung total halaman
   const totalPages = Math.ceil(totalData / limit);
 
-  // Generate range halaman (misal 1 2 3)
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -195,7 +187,6 @@ export default function DataPenggunaTable({
   return (
     <div className="rounded-xl bg-white p-2 md:p-4 shadow-sm border border-gray-100">
 
-      {/* HEADER: TITLE & LIMIT SELECTOR */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
         <h2 className="text-sm font-semibold text-gray-800">
           Data Pengguna Parkir
@@ -328,7 +319,6 @@ export default function DataPenggunaTable({
 
                   <Td>
                     <div className="flex justify-center gap-1 md:gap-2">
-                      {/* JIKA STATUS MENUNGGU (0) → VALIDASI (HIJAU) & TOLAK (MERAH) */}
                       {user.status_akun === 0 ? (
                         <>
                           <button
@@ -350,7 +340,6 @@ export default function DataPenggunaTable({
                           </button>
                         </>
                       ) : (
-                        /* JIKA STATUS AKTIF (1), BLOKIR (2), ATAU DITOLAK (3) */
                         <>
                           {user.status_akun === 2 && (
                             <button
@@ -393,18 +382,14 @@ export default function DataPenggunaTable({
         </table>
       </div>
 
-      {/* FOOTER: INFO & PAGINATION */}
       {users.length > 0 && (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1 text-xs text-gray-600 border-t pt-4">
-
-          {/* Status Info */}
           <div>
             Menampilkan <span className="font-semibold">{(page - 1) * limit + 1}</span> -{" "}
             <span className="font-semibold">{Math.min(page * limit, totalData)}</span> dari{" "}
             <span className="font-semibold">{totalData}</span> data
           </div>
 
-          {/* Pagination Buttons */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(1)}
@@ -415,7 +400,7 @@ export default function DataPenggunaTable({
               <ChevronsLeft size={16} />
             </button>
             <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"
               title="Kembali"
@@ -423,9 +408,8 @@ export default function DataPenggunaTable({
               <ChevronLeft size={16} />
             </button>
 
-            {/* Page Numbers */}
             <div className="hidden sm:flex items-center gap-1 mx-1">
-              {getPageNumbers().map(num => (
+              {getPageNumbers().map((num) => (
                 <button
                   key={num}
                   onClick={() => setPage(num)}
@@ -439,13 +423,12 @@ export default function DataPenggunaTable({
               ))}
             </div>
 
-            {/* Mobile View Page Indicator */}
             <span className="sm:hidden mx-2 font-medium">
               {page} / {totalPages}
             </span>
 
             <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition"
               title="Lanjut"
@@ -468,8 +451,6 @@ export default function DataPenggunaTable({
   );
 }
 
-
-/* ===== REUSABLE CELL ===== */
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="px-3 py-2 text-xs font-semibold text-gray-700">

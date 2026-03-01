@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { io } from "socket.io-client";
 import { CheckCircle, Eye, EyeOff } from "lucide-react";
 
-/* ================= DATA JURUSAN ================= */
-
 const jurusanList = [
   "Jurusan Teknik Sipil",
   "Jurusan Teknik Mesin",
@@ -15,6 +13,8 @@ const jurusanList = [
   "Jurusan Teknik Geodesi dan Geomatika",
   "Jurusan Teknik Arsitektur",
 ];
+
+const angkatanList = Array.from({ length: 10 }, (_, i) => (2017 + i).toString());
 
 const prodiByJurusan: Record<string, string[]> = {
   "Jurusan Teknik Sipil": [
@@ -57,8 +57,6 @@ export default function ProfilMahasiswaPage() {
   const [konfirmasiPassword, setKonfirmasiPassword] = useState("");
   const [error, setError] = useState("");
 
-  /* ================= FETCH ================= */
-
   const fetchRef = useRef<any>(null);
 
   const fetchProfil = useCallback(async (signal?: AbortSignal) => {
@@ -95,7 +93,6 @@ export default function ProfilMahasiswaPage() {
     return () => controller.abort();
   }, [fetchProfil]);
 
-  // Socket Listener for Status Update
   useEffect(() => {
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
@@ -104,7 +101,7 @@ export default function ProfilMahasiswaPage() {
     const socket = io(socketHost);
 
     socket.on("user_update", (payload: any) => {
-      console.log("👥 Profil real-time update:", payload);
+      console.log("Profil real-time update:", payload);
       const myNpm = localStorage.getItem("npm");
       if (payload.npm === myNpm || !payload.npm) {
         if (fetchRef.current) fetchRef.current();
@@ -124,8 +121,6 @@ export default function ProfilMahasiswaPage() {
     );
   }
 
-  /* ================= HANDLERS ================= */
-
   const handleChange = (e: any) => {
     const { name, value } = e.target;
 
@@ -142,7 +137,7 @@ export default function ProfilMahasiswaPage() {
 
     if (file.size > 2 * 1024 * 1024) {
       setError("Ukuran foto maksimal 2MB. Tidak bisa menyimpan perubahan.");
-      e.target.value = ""; // Reset input
+      e.target.value = "";
       return;
     }
 
@@ -157,7 +152,6 @@ export default function ProfilMahasiswaPage() {
       setSaving(true);
       setError("");
 
-      // 1. UPDATE PROFIL (Kecuali Password)
       const formData = new FormData();
       formData.append("npm", profil.npm);
       formData.append("jurusan", profil.jurusan || "");
@@ -176,8 +170,10 @@ export default function ProfilMahasiswaPage() {
         throw new Error(errorData.message || "Gagal memperbarui profil");
       }
 
-      // 2. UPDATE PASSWORD (Jika User Mengisi)
       if (passwordBaru || konfirmasiPassword) {
+        if (passwordBaru.length < 8) {
+          throw new Error("Kata sandi baru minimal harus 8 karakter");
+        }
         if (passwordBaru !== konfirmasiPassword) {
           throw new Error("Konfirmasi kata sandi tidak cocok");
         }
@@ -197,12 +193,11 @@ export default function ProfilMahasiswaPage() {
           throw new Error(dataPswd.message || "Gagal mengubah kata sandi");
         }
 
-        // Reset field password setelah sukses
         setPasswordBaru("");
         setKonfirmasiPassword("");
       }
 
-      await fetchProfil(); // Segarkan data
+      await fetchProfil();
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } catch (error: any) {
@@ -219,7 +214,6 @@ export default function ProfilMahasiswaPage() {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
 
-      {/* ================= HEADER ================= */}
       <div className="flex flex-col items-center gap-4 pb-6">
 
         <div
@@ -270,7 +264,6 @@ export default function ProfilMahasiswaPage() {
         </div>
       </div>
 
-      {/* ================= INFORMASI ================= */}
       <section>
         <h3 className="text-sm font-semibold text-gray-800 border-b pb-1 mb-3">
           Informasi Profil
@@ -282,11 +275,13 @@ export default function ProfilMahasiswaPage() {
 
           <Field label="Email" value={profil.email} disabled />
           <Field label="Nomor Kendaraan" value={profil.plat_nomor} disabled />
-          <Field
+
+          <Select
             label="Angkatan"
             name="angkatan"
             value={profil.angkatan || ""}
             onChange={handleChange}
+            options={angkatanList}
           />
 
           <Select
@@ -307,7 +302,7 @@ export default function ProfilMahasiswaPage() {
           />
         </div>
       </section>
-      {/* ================= STNK ================= */}
+
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-sm font-semibold text-gray-800 border-b pb-2">
           Lampiran STNK
@@ -327,7 +322,7 @@ export default function ProfilMahasiswaPage() {
               rel="noopener noreferrer"
               className="rounded bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-600 hover:bg-blue-100 transition"
             >
-              Buka Gambar Penuh ↗
+              Buka Gambar Penuh
             </a>
           </div>
         ) : (
@@ -335,7 +330,6 @@ export default function ProfilMahasiswaPage() {
         )}
       </div>
 
-      {/* ================= GANTI PASSWORD ================= */}
       <section className="mt-8 space-y-3">
         <h3 className="text-sm font-semibold text-gray-800 border-b pb-1">
           Ganti Kata Sandi
@@ -346,6 +340,8 @@ export default function ProfilMahasiswaPage() {
             label="Kata Sandi Baru"
             type={showPassword ? "text" : "password"}
             name="password_baru"
+            autoComplete="new-password"
+            placeholder="Masukkan kata sandi baru"
             value={passwordBaru}
             onChange={(e: any) => setPasswordBaru(e.target.value)}
             icon={
@@ -358,10 +354,13 @@ export default function ProfilMahasiswaPage() {
               </button>
             }
           />
+
           <Field
             label="Konfirmasi Kata Sandi"
             type={showConfirm ? "text" : "password"}
             name="konfirmasi_password"
+            autoComplete="new-password"
+            placeholder="Ulangi kata sandi baru"
             value={konfirmasiPassword}
             onChange={(e: any) => setKonfirmasiPassword(e.target.value)}
             icon={
@@ -378,7 +377,6 @@ export default function ProfilMahasiswaPage() {
       </section>
 
 
-      {/* ================= BUTTON ================= */}
       <div className="flex flex-col items-end gap-2 pt-4">
         {error && (
           <p className="text-xs text-red-500 font-medium">
@@ -394,7 +392,6 @@ export default function ProfilMahasiswaPage() {
         </button>
       </div>
 
-      {/* ================= TOAST NOTIFICATION ================= */}
       {showToast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center gap-3 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg border border-green-500/20">
@@ -407,7 +404,7 @@ export default function ProfilMahasiswaPage() {
   );
 }
 
-/* ================= FIELD ================= */
+
 
 function Field({ label, icon, ...props }: any) {
   return (

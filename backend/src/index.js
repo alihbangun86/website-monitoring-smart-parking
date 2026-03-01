@@ -5,7 +5,7 @@ const cors = require("cors");
 const { connectToDatabase } = require("./config/database");
 
 require("./utils/kuotaBulanan");
-// ================= ROUTES =================
+//ROUTES
 const penggunaRoutes = require("./routes/penggunaRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const statistikRoutes = require("./routes/statistikRoutes");
@@ -21,8 +21,9 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: "*", // Biarkan fleksibel untuk development
+    origin: "https://smartpark.my.id",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -30,20 +31,16 @@ const io = new Server(server, {
 app.set("io", io);
 
 io.on("connection", (socket) => {
-  console.log("🔌 Client connected:", socket.id);
+  console.log("Client connected:", socket.id);
   socket.on("disconnect", () => {
-    console.log("❌ Client disconnected:", socket.id);
+    console.log("Client disconnected:", socket.id);
   });
 });
 
-/**
- * ================= BASIC CONFIG =================
- */
+/*BASIC CONFIG*/
 app.disable("x-powered-by");
 
-/**
- * ================= CORS =================
- */
+/*CORS*/
 app.use(
   cors({
     origin: true, // Pantulkan origin request (fleksibel)
@@ -51,8 +48,7 @@ app.use(
   })
 );
 
-/**
- * ================= BODY PARSER =================
+/* BODY PARSER 
  * NOTE:
  * express.json() tetap dipakai
  * tapi upload file harus pakai multer di route, bukan di sini
@@ -61,22 +57,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("public/uploads"));
 
-/**
- * ================= REQUEST LOGGER =================
- */
+/* REQUEST LOGGER */
 app.use((req, res, next) => {
   console.log("➡️ HIT:", req.method, req.originalUrl);
   next();
 });
 
-/**
- * ================= DATABASE =================
- */
+/* DATABASE */
 connectToDatabase();
 
-/**
- * ================= HEALTH CHECK =================
- */
+/* HEALTH CHECK */
 app.get("/api/health", (req, res) => {
   return res.status(200).json({
     status: "success",
@@ -85,9 +75,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/**
- * ================= ROUTES =================
- */
+/* ROUTES*/
 
 // MAHASISWA
 app.use("/api/pengguna", penggunaRoutes);
@@ -104,9 +92,7 @@ app.use("/api/statistik", statistikRoutes);
 // STATCARD
 app.use("/api/statcard", statcardRoutes);
 
-/**
- * ================= 404 HANDLER =================
- */
+/* 404 HANDLER */
 app.use((req, res) => {
   return res.status(404).json({
     status: "error",
@@ -115,11 +101,9 @@ app.use((req, res) => {
   });
 });
 
-/**
- * ================= GLOBAL ERROR HANDLER =================
- */
+/*GLOBAL ERROR HANDLER */
 app.use((err, req, res, next) => {
-  console.error("🔥 Server Error:", err);
+  console.error("Server Error:", err);
 
   return res.status(err.status || 500).json({
     status: "error",
@@ -127,11 +111,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-/**
- * ================= START SERVER =================
- */
+/*START SERVER */
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server aktif di http://localhost:${PORT}`);
+  console.log(` Server aktif di http://localhost:${PORT}`);
 });

@@ -44,7 +44,6 @@ export default function LupaPasswordPage() {
         throw new Error(data.message || "Gagal mengirim OTP");
       }
 
-      // Simpan email ke sessionStorage agar bisa dipakai di halaman verifikasi
       sessionStorage.setItem("reset_email", email);
 
       router.push("/lupa-password/verifikasi");

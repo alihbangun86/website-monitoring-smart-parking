@@ -16,9 +16,7 @@ const {
 
 const upload = require("../utils/upload");
 
-/* ====================================================
-   AUTH ROUTES
-==================================================== */
+/* AUTH ROUTES*/
 
 // REGISTER
 router.post("/auth/register", upload.single("stnk"), registerPengguna);
@@ -38,9 +36,7 @@ router.post("/auth/verify-otp", verifyOtp);
 // RESET PASSWORD (OTP)
 router.post("/auth/reset-password", resetPasswordOtp);
 
-/* ====================================================
-   USER ROUTES
-==================================================== */
+/*USER ROUTES*/
 
 // GET PROFIL
 router.get("/users/profile/:npm", getProfilPengguna);

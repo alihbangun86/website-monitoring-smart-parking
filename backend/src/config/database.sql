@@ -19,8 +19,8 @@ CREATE TABLE pengguna (
     email VARCHAR(50) UNIQUE,
     jurusan VARCHAR(100) NOT NULL,
     prodi VARCHAR(100) NOT NULL,
-    angkatan VARCHAR(50) NOT NULL,
-    foto VARCHAR(100) NOT NULL,
+    angkatan VARCHAR(50) ,
+    foto VARCHAR(100) ,
     password VARCHAR(255) NOT NULL,
     status_akun BOOLEAN DEFAULT FALSE,
     tanggal_daftar DATETIME

@@ -34,7 +34,7 @@ export default function StatistikKendaraan({
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
 
-  /* ================= FETCH DATA ================= */
+
   useEffect(() => {
     const fetchStatistik = async () => {
       try {
@@ -75,7 +75,7 @@ export default function StatistikKendaraan({
     fetchStatistik();
   }, [periode, refreshKey, filterDate, fromDate, toDate]);
 
-  /* ================= CHART DATA ================= */
+
   const chartData = {
     labels,
     datasets: [
@@ -90,7 +90,7 @@ export default function StatistikKendaraan({
 
   return (
     <div className="rounded-lg bg-gray-200 p-3 md:p-4">
-      {/* HEADER */}
+
       <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 className="text-xs md:text-sm font-semibold">
           Statistik Kendaraan
@@ -136,7 +136,7 @@ export default function StatistikKendaraan({
         </div>
       </div>
 
-      {/* CONTENT */}
+
       <div className="h-[250px] md:h-[320px]">
         {loading && (
           <p className="text-center text-xs text-gray-500">
@@ -166,7 +166,7 @@ export default function StatistikKendaraan({
               scales: {
                 x: {
                   ticks: {
-                    autoSkip: false, // Tampilkan 24 jam/hari/bulan di sumbu X
+                    autoSkip: false,
                     maxRotation: 45,
                     minRotation: 0,
                     font: {
@@ -186,9 +186,9 @@ export default function StatistikKendaraan({
                 },
                 y: {
                   beginAtZero: true,
-                  suggestedMax: 100, // Menghindari skala hanya mengikuti data tertinggi
+                  suggestedMax: 100,
                   ticks: {
-                    stepSize: 10, // Kelipatan 10 di sumbu Y
+                    stepSize: 10,
                     precision: 0,
                   },
                   title: {

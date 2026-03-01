@@ -3,9 +3,7 @@ const { sendOtpEmail } = require("../utils/lupapswd");
 const { sendRegistrationPendingEmail } = require("../utils/email");
 const bcrypt = require("bcryptjs");
 
-/* =====================================================
-   REGISTER PENGGUNA (FINAL - FIX FOREIGN KEY)
-===================================================== */
+/*REGISTER PENGGUNA */
 const registerPengguna = async (req, res) => {
   const connection = await pool.getConnection();
 
@@ -36,7 +34,7 @@ const registerPengguna = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // 1️⃣ Insert pengguna
+    //Insert pengguna
     await connection.query(
       `INSERT INTO pengguna
        (npm, nama, email, jurusan, prodi, password, status_akun, tanggal_daftar)
@@ -44,7 +42,7 @@ const registerPengguna = async (req, res) => {
       [npm, nama, email, jurusan, prodi, hashedPassword]
     );
 
-    // 2️⃣ Insert kendaraan
+    //Insert kendaraan
     const [kendaraanResult] = await connection.query(
       `INSERT INTO kendaraan (npm, plat_nomor, stnk)
        VALUES (?, ?, ?)`,
@@ -53,7 +51,7 @@ const registerPengguna = async (req, res) => {
 
     const id_kendaraan = kendaraanResult.insertId;
 
-    // 3️⃣ Insert kuota (WAJIB pakai id_kendaraan)
+    //Insert kuota
     await connection.query(`
       INSERT INTO kuota_parkir
       (npm, id_kendaraan, periode_bulan, batas_parkir, jumlah_terpakai, last_reset_date)
@@ -90,9 +88,7 @@ const registerPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   LOGIN
-===================================================== */
+/*LOGIN*/
 const loginPengguna = async (req, res) => {
   try {
     const { npm, password } = req.body;
@@ -140,7 +136,7 @@ const loginPengguna = async (req, res) => {
       });
     }
 
-    // ✅ JARING PENGAMAN: PASTIKAN USER PUNYA KUOTA SAAT LOGIN
+    //PASTIKAN USER PUNYA KUOTA SAAT LOGIN
     const existingKuota = await query(
       "SELECT id_kuota FROM kuota_parkir WHERE npm = ? LIMIT 1",
       [user.npm]
@@ -151,7 +147,7 @@ const loginPengguna = async (req, res) => {
         "INSERT INTO kuota_parkir (npm, batas_parkir, jumlah_terpakai) VALUES (?, 30, 0)",
         [user.npm]
       );
-      console.log(`✅ Kuota awal 30 diberikan otomatis saat login untuk NPM ${user.npm}`);
+      console.log(`Kuota awal 30 diberikan otomatis saat login untuk NPM ${user.npm}`);
     }
 
     return res.status(200).json({
@@ -174,9 +170,7 @@ const loginPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   GET PROFIL
-===================================================== */
+/*GET PROFIL*/
 const getProfilPengguna = async (req, res) => {
   try {
     const { npm } = req.params;
@@ -223,12 +217,10 @@ const getProfilPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   UPDATE PROFIL
-===================================================== */
+/*UPDATE PROFIL*/
 const editProfilPengguna = async (req, res) => {
   try {
-    console.log("📥 UPDATE PROFIL REQUEST:", req.body);
+    console.log("UPDATE PROFIL REQUEST:", req.body);
     const { npm, jurusan, prodi, plat_nomor, angkatan } = req.body;
 
     // Ambil file jika ada (menggunakan upload.fields)
@@ -276,7 +268,7 @@ const editProfilPengguna = async (req, res) => {
       );
     }
 
-    console.log(`✅ Profil NPM ${trimmedNpm} berhasil diperbarui`);
+    console.log(`Profil NPM ${trimmedNpm} berhasil diperbarui`);
 
     // 📡 Real-time update untuk Admin
     const io = req.app.get("io");
@@ -287,7 +279,7 @@ const editProfilPengguna = async (req, res) => {
       message: "Profil berhasil diperbarui",
     });
   } catch (error) {
-    console.error("🔥 UPDATE PROFIL ERROR:", error);
+    console.error("UPDATE PROFIL ERROR:", error);
     return res.status(500).json({
       status: "error",
       message: "Gagal update profil",
@@ -297,9 +289,7 @@ const editProfilPengguna = async (req, res) => {
 
 
 
-/* =====================================================
-   CHANGE PASSWORD (TANPA OTP - DARI HALAMAN PROFIL)
-===================================================== */
+/*CHANGE PASSWORD (TANPA OTP - DARI HALAMAN PROFIL)*/
 const changePassword = async (req, res) => {
   try {
     const { npm, password_baru } = req.body;
@@ -346,9 +336,7 @@ const changePassword = async (req, res) => {
   }
 };
 
-/* =====================================================
-   RIWAYAT PARKIR
-===================================================== */
+/*RIWAYAT PARKIR*/
 const riwayatParkirPengguna = async (req, res) => {
   try {
     const { npm } = req.params;
@@ -376,9 +364,7 @@ const riwayatParkirPengguna = async (req, res) => {
   }
 };
 
-/* =====================================================
-   LOGOUT
-===================================================== */
+/*LOGOUT*/
 const logoutPengguna = async (req, res) => {
   return res.status(200).json({
     status: "success",
@@ -386,9 +372,7 @@ const logoutPengguna = async (req, res) => {
   });
 };
 
-/* =====================================================
-   REQUEST OTP (LUPA PASSWORD)
-===================================================== */
+/*REQUEST OTP (LUPA PASSWORD)*/
 const requestOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -429,9 +413,7 @@ const requestOtp = async (req, res) => {
   }
 };
 
-/* =====================================================
-   RESET PASSWORD DENGAN OTP
-===================================================== */
+/*RESET PASSWORD DENGAN OTP*/
 const resetPasswordOtp = async (req, res) => {
   try {
     const { email, otp, password_baru } = req.body;
@@ -488,9 +470,7 @@ const resetPasswordOtp = async (req, res) => {
   }
 };
 
-/* =====================================================
-   VERIFIKASI OTP
- ===================================================== */
+/*VERIFIKASI OTP*/
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;

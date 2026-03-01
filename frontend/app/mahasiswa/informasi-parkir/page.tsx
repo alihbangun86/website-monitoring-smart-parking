@@ -5,7 +5,6 @@ import StatCard from "@/app/components/StatCard";
 import { io } from "socket.io-client";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
-/* ===== TIPE DATA RIWAYAT ===== */
 type RiwayatMasuk = {
   tanggal: string;
   waktuMasuk: string;
@@ -13,7 +12,6 @@ type RiwayatMasuk = {
   status: "Masuk" | "Keluar";
 };
 
-/* ===== TIPE DATA STATCARD ===== */
 type StatCardData = {
   terisi: number;
   tersedia: number;
@@ -38,7 +36,6 @@ export default function InformasiParkirPage() {
   const fetchRef = useRef<any>(null);
   const riwayatRef = useRef<any>(null);
 
-  /* ================= STATCARD ================= */
   const fetchStatCard = useCallback(async (signal?: AbortSignal) => {
     try {
       const npm = localStorage.getItem("npm");
@@ -61,8 +58,6 @@ export default function InformasiParkirPage() {
     }
   }, []);
 
-
-  /* ================= RIWAYAT PARKIR ================= */
   const fetchRiwayatParkir = useCallback(async (signal?: AbortSignal) => {
     try {
       const npm = localStorage.getItem("npm");
@@ -112,7 +107,6 @@ export default function InformasiParkirPage() {
     }
   }, []);
 
-  /* ================= EFFECT ================= */
   useEffect(() => {
     fetchRef.current = fetchStatCard;
     riwayatRef.current = fetchRiwayatParkir;
@@ -126,7 +120,7 @@ export default function InformasiParkirPage() {
   }, [fetchStatCard, fetchRiwayatParkir]);
 
   useEffect(() => {
-    console.log("🔌 Initializing socket for Informasi Parkir...");
+    console.log("Initializing socket for Informasi Parkir...");
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
       : `http://${window.location.hostname}:5000`;
@@ -139,44 +133,42 @@ export default function InformasiParkirPage() {
     });
 
     socket.on("connect", () => {
-      console.log("✅ Informasi Parkir Socket Connected to:", socketHost);
-      console.log("🆔 Socket ID:", socket.id);
+      console.log("Informasi Parkir Socket Connected to:", socketHost);
+      console.log("Socket ID:", socket.id);
     });
 
     socket.on("disconnect", (reason) => {
-      console.warn("⚠️ Informasi Parkir Socket Disconnected:", reason);
+      console.warn("Informasi Parkir Socket Disconnected:", reason);
     });
 
     socket.on("parking_update", (payload: any) => {
-      console.log("🚗 Informasi Parkir real-time update:", payload);
-      console.log("🔄 Refreshing statcard and riwayat...");
+      console.log("Informasi Parkir real-time update:", payload);
+      console.log("Refreshing statcard and riwayat...");
       if (fetchRef.current) fetchRef.current();
       if (riwayatRef.current) riwayatRef.current();
     });
 
     socket.on("user_update", (payload: any) => {
-      console.log("👥 User update received:", payload);
+      console.log("User update received:", payload);
       if (fetchRef.current) fetchRef.current();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("❌ Informasi Parkir Socket Error:", err.message);
+      console.error("Informasi Parkir Socket Error:", err.message);
     });
 
     return () => {
-      console.log("🔌 Disconnecting Informasi Parkir socket...");
+      console.log("Disconnecting Informasi Parkir socket...");
       socket.disconnect();
     };
   }, []);
 
-  /* ================= REFRESH ================= */
   const handleRefresh = async () => {
     setLoading(true);
     await Promise.all([fetchStatCard(), fetchRiwayatParkir()]);
     setLoading(false);
   };
 
-  // Pagination Logic
   const totalPages = Math.ceil(total / limit);
   const getPageNumbers = () => {
     const pages = [];
@@ -190,7 +182,6 @@ export default function InformasiParkirPage() {
 
   return (
     <div className="space-y-8">
-      {/* STATUS PARKIR */}
       <div className="flex items-center gap-3 text-sm">
         <span className="font-semibold text-gray-700">Status Parkir:</span>
         <span
@@ -201,7 +192,6 @@ export default function InformasiParkirPage() {
         </span>
       </div>
 
-      {/* STATCARD */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-800">
@@ -221,7 +211,6 @@ export default function InformasiParkirPage() {
         </div>
       </section>
 
-      {/* RIWAYAT PARKIR */}
       <section className="rounded-xl border border-gray-100 bg-white p-2 md:p-5 shadow-sm">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
           <h3 className="text-sm font-semibold text-gray-800">
@@ -245,7 +234,6 @@ export default function InformasiParkirPage() {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              {/* Custom Dropdown Arrow */}
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
                 <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -299,16 +287,13 @@ export default function InformasiParkirPage() {
               </table>
             </div>
 
-            {/* PAGINATION */}
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1 text-xs text-gray-600 border-t pt-4">
-              {/* Status Info */}
               <div>
                 Menampilkan <span className="font-semibold">{(page - 1) * limit + 1}</span> -{" "}
                 <span className="font-semibold">{Math.min(page * limit, total)}</span> dari{" "}
                 <span className="font-semibold">{total}</span> data
               </div>
 
-              {/* Pagination Buttons */}
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage(1)}
@@ -327,7 +312,6 @@ export default function InformasiParkirPage() {
                   <ChevronLeft size={16} />
                 </button>
 
-                {/* Page Numbers (Desktop) */}
                 <div className="hidden sm:flex items-center gap-1 mx-1">
                   {getPageNumbers().map((num) => (
                     <button
@@ -343,7 +327,6 @@ export default function InformasiParkirPage() {
                   ))}
                 </div>
 
-                {/* Mobile View Page Indicator */}
                 <span className="sm:hidden mx-2 font-medium">
                   {page} / {totalPages}
                 </span>
@@ -375,7 +358,6 @@ export default function InformasiParkirPage() {
   );
 }
 
-/* ===== TABLE CELL ===== */
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th className="px-3 py-2 text-xs font-semibold text-gray-700">

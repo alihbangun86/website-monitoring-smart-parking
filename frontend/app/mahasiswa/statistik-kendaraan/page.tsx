@@ -15,7 +15,7 @@ export default function StatistikKendaraanPage() {
     const socket = io(socketHost);
 
     socket.on("parking_update", (payload: any) => {
-      console.log("📈 Statistik real-time refresh:", payload);
+      console.log("Statistik real-time refresh:", payload);
       setRefreshKey(prev => prev + 1);
     });
 
@@ -30,10 +30,9 @@ export default function StatistikKendaraanPage() {
 
   return (
     <div className="space-y-6">
-      {/* ===== INFORMASI ===== */}
       <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
         <h3 className="text-sm font-semibold text-[#1F3A93] mb-2">
-          📊 Tentang Statistik
+          Tentang Statistik
         </h3>
         <p className="text-xs sm:text-sm text-gray-700 leading-relaxed">
           Statistik ini menampilkan <span className="font-semibold">jumlah kendaraan yang masuk</span> pada waktu tertentu.
@@ -41,7 +40,6 @@ export default function StatistikKendaraanPage() {
         </p>
       </div>
 
-      {/* ===== STATISTIK ===== */}
       <StatistikKendaraan refreshKey={refreshKey} />
     </div>
   );

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-/**
- * POST /api/logout
- * Proxy ke Backend Express
- */
+
 export async function POST() {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pengguna/auth/logout`, {

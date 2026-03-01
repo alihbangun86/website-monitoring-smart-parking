@@ -9,7 +9,6 @@ export default function LaporanExport() {
   const [to, setTo] = useState("");
   const [dateError, setDateError] = useState("");
 
-  // Fungsi untuk menghitung selisih hari
   const getDaysDifference = (date1: string, date2: string) => {
     if (!date1 || !date2) return 0;
     const d1 = new Date(date1);
@@ -19,7 +18,6 @@ export default function LaporanExport() {
     return diffDays;
   };
 
-  // Validasi tanggal berdasarkan periode
   useEffect(() => {
     if (!from || !to) {
       setDateError("");
@@ -39,7 +37,6 @@ export default function LaporanExport() {
     }
   }, [from, to, periode]);
 
-  // Auto-set tanggal "Sampai" berdasarkan periode
   const handleFromDateChange = (date: string) => {
     setFrom(date);
 
@@ -66,7 +63,7 @@ export default function LaporanExport() {
     setTo(endDateString);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (dateError) {
       alert("Silakan perbaiki rentang tanggal terlebih dahulu");
       return;
@@ -77,18 +74,58 @@ export default function LaporanExport() {
       return;
     }
 
-    if (format !== "pdf") {
-      alert("Saat ini hanya PDF yang tersedia");
-      return;
+    if (format === "pdf") {
+      try {
+        const { default: jsPDF } = await import("jspdf");
+        const { default: autoTable } = await import("jspdf-autotable");
+
+        // Fetch data mentah
+        const url = `/api/admin/parkir?limit=100000&start=${from}&end=${to}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const dataParkir = json.data || [];
+
+        if (dataParkir.length === 0) {
+          alert("Tidak ada data untuk periode ini");
+          return;
+        }
+
+        const doc = new jsPDF() as any;
+        doc.text("LAPORAN DATA PARKIR", 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Periode: ${from} s/d ${to}`, 14, 22);
+
+        const tableData = dataParkir.map((item: any, index: number) => [
+          index + 1,
+          item.npm || "-",
+          item.nama,
+          item.plat_motor,
+          item.tanggal,
+          item.hari,
+          item.masuk,
+          item.keluar || "-",
+          item.status
+        ]);
+
+        const columns = ["No", "NPM", "Nama", "Plat", "Tanggal", "Hari", "Masuk", "Keluar", "Status"];
+
+        autoTable(doc, {
+          head: [columns],
+          body: tableData,
+          startY: 30,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [31, 58, 147] }
+        });
+
+        doc.save(`laporan-parkir-${from}.pdf`);
+      } catch (err) {
+        console.error("PDF ERROR:", err);
+        alert("Gagal membuat PDF. Coba gunakan format lain atau hubungi admin.");
+      }
+    } else {
+      let url = `/api/admin/export/${format}?periode=${periode}&start=${from}&end=${to}`;
+      window.open(url, "_blank");
     }
-
-    let url = `/api/admin/export/pdf?periode=${periode}`;
-
-    if (from && to) {
-      url += `&from=${from}&to=${to}`;
-    }
-
-    window.open(url, "_blank");
   };
 
   return (
@@ -97,7 +134,7 @@ export default function LaporanExport() {
         Export Laporan Akhir
       </h3>
 
-      {/* ===== PERIODE ===== */}
+
       <div className="mb-4 space-y-3">
         <div>
           <label className="mb-1.5 block text-[11px] sm:text-xs font-semibold text-gray-600">Pilih Periode</label>
@@ -162,14 +199,14 @@ export default function LaporanExport() {
         </div>
       </div>
 
-      {/* Error Message */}
+
       {dateError && (
         <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-          ⚠️ {dateError}
+          {dateError}
         </div>
       )}
 
-      {/* ===== FORMAT FILE ===== */}
+
       <div className="mb-5">
         <label className="mb-1.5 block text-[11px] sm:text-xs font-semibold text-gray-600">
           Format File
@@ -198,7 +235,7 @@ export default function LaporanExport() {
         </div>
       </div>
 
-      {/* ===== BUTTON ===== */}
+
       <button
         type="button"
         onClick={handleExport}

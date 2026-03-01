@@ -31,12 +31,10 @@ export default function DataKendaraanParkir({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Pagination State
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
   const [totalData, setTotalData] = useState(0);
 
-  // Ref untuk menyimpan fungsi fetch terbaru agar tidak memicu reconnnect socket
   const fetchRef = useRef<any>(null);
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
@@ -80,17 +78,14 @@ export default function DataKendaraanParkir({
     }
   }, [page, limit, search, startDate, endDate]);
 
-  // Update ref setiap kali fetchData berubah
   useEffect(() => {
     fetchRef.current = fetchData;
   }, [fetchData]);
 
-  // Reset page ke 1 jika filter berubah
   useEffect(() => {
     setPage(1);
   }, [search, startDate, endDate, limit]);
 
-  // 1. Hook untuk fetch data saat filter/page berubah
   useEffect(() => {
     const controller = new AbortController();
     fetchData(controller.signal);
@@ -98,7 +93,6 @@ export default function DataKendaraanParkir({
   }, [fetchData]);
 
   useEffect(() => {
-    // Dynamic Host for Socket.io
     const socketHost = window.location.hostname === "localhost"
       ? "http://localhost:5000"
       : `http://${window.location.hostname}:5000`;
@@ -106,16 +100,16 @@ export default function DataKendaraanParkir({
     const socket = io(socketHost);
 
     socket.on("connect", () => {
-      console.log("✅ Table Socket Connected");
+      console.log("Table Socket Connected");
     });
 
     socket.on("parking_update", (payload: any) => {
-      console.log("🔄 Real-time table update received:", payload);
+      console.log("Real-time table update received:", payload);
       if (fetchRef.current) fetchRef.current();
     });
 
     socket.on("connect_error", (err) => {
-      console.error("❌ Table Socket Error:", err);
+      console.error("Table Socket Error:", err);
     });
 
     return () => {
@@ -123,10 +117,8 @@ export default function DataKendaraanParkir({
     };
   }, []);
 
-  // Hitung total halaman
   const totalPages = Math.ceil(totalData / limit);
 
-  // Generate range halaman (misal 1 2 3)
   const getPageNumbers = () => {
     const pages = [];
     for (let i = 1; i <= totalPages; i++) {
@@ -137,7 +129,6 @@ export default function DataKendaraanParkir({
 
   return (
     <section className="rounded-xl bg-[#E9EBEE] p-6 shadow-sm border border-gray-200">
-      {/* ===== HEADER ===== */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
         <h2 className="text-sm font-semibold text-gray-800">
           Data Kendaraan Parkir
@@ -150,7 +141,7 @@ export default function DataKendaraanParkir({
               value={limit}
               onChange={(e) => {
                 setLimit(Number(e.target.value));
-                setPage(1); // Reset page saat limit berubah
+                setPage(1);
               }}
               className="appearance-none rounded-md border border-gray-300 px-2 py-1 pr-8 bg-white
                 focus:border-[#1F3A93] focus:outline-none text-xs"
@@ -161,7 +152,7 @@ export default function DataKendaraanParkir({
               <option value={50}>50</option>
               <option value={100}>100</option>
             </select>
-            {/* Custom Dropdown Arrow */}
+
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -172,7 +163,6 @@ export default function DataKendaraanParkir({
         </div>
       </div>
 
-      {/* ===== TABLE ===== */}
       <div className="overflow-x-auto rounded-lg bg-white border border-gray-200">
         <table className="w-full border-collapse text-xs min-w-[900px]">
           <thead className="bg-gray-100 text-gray-700">
@@ -212,7 +202,6 @@ export default function DataKendaraanParkir({
                   key={`${item.npm}-${item.tanggal}-${item.masuk}-${index}`}
                   className="border-t text-center transition hover:bg-[#F4F6F8]"
                 >
-                  {/* Perhitungan No: (page - 1) * limit + index + 1 */}
                   <Td className="text-gray-500">{(page - 1) * limit + index + 1}</Td>
                   <Td className="font-medium text-gray-600">{item.npm}</Td>
                   <Td className="font-semibold text-[#1F3A93]">{item.nama}</Td>
@@ -220,7 +209,7 @@ export default function DataKendaraanParkir({
                   <Td>{item.tanggal}</Td>
                   <Td>{item.hari}</Td>
                   <Td>{item.masuk}</Td>
-                  <Td>{item.keluar}</Td>
+                  <Td>{item.keluar || "-"}</Td>
                   <Td>
                     <span
                       className={`rounded-full px-2 md:px-3 py-1 text-[10px] md:text-[11px] font-semibold whitespace-nowrap ${item.status === "Terparkir"
@@ -237,18 +226,14 @@ export default function DataKendaraanParkir({
         </table>
       </div>
 
-      {/* ===== INFO & PAGINATION ===== */}
       {!loading && !error && data.length > 0 && (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-gray-600 border-t border-gray-300 pt-4">
-
-          {/* Info Data */}
           <div>
             Menampilkan <span className="font-semibold">{(page - 1) * limit + 1}</span> -{" "}
             <span className="font-semibold">{Math.min(page * limit, totalData)}</span> dari{" "}
             <span className="font-semibold">{totalData}</span> data
           </div>
 
-          {/* Controls */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(1)}
@@ -260,7 +245,7 @@ export default function DataKendaraanParkir({
             </button>
 
             <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
               title="Halaman Sebelumnya"
@@ -268,7 +253,6 @@ export default function DataKendaraanParkir({
               <ChevronLeft size={16} />
             </button>
 
-            {/* Clickable Page Numbers */}
             <div className="hidden sm:flex items-center gap-1 mx-1">
               {getPageNumbers().map((num) => (
                 <button
@@ -284,13 +268,12 @@ export default function DataKendaraanParkir({
               ))}
             </div>
 
-            {/* Mobile Indicator */}
             <span className="sm:hidden mx-2 font-medium text-gray-800">
               {page} / {totalPages || 1}
             </span>
 
             <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
               className="p-1 rounded hover:bg-white disabled:opacity-30 transition"
               title="Halaman Selanjutnya"
@@ -317,7 +300,6 @@ export default function DataKendaraanParkir({
   );
 }
 
-/* ===== REUSABLE CELL ===== */
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="px-3 py-2 font-semibold text-gray-700">{children}</th>;
 }

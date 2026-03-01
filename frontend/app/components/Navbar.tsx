@@ -20,11 +20,11 @@ export default function Navbar() {
         method: "POST",
       });
 
-      // 🔥 Hapus data login dari localStorage
+
       localStorage.removeItem("npm");
       localStorage.removeItem("user");
 
-      // Redirect ke halaman login
+
       router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
@@ -38,9 +38,9 @@ export default function Navbar() {
 
   return (
     <nav className="w-full border-b border-gray-300 bg-[#1F3A93] text-white relative z-50">
-      {/* ================= TOP BAR ================= */}
+
       <div className="flex items-center justify-between px-4 py-3 sm:px-6">
-        {/* LEFT */}
+
         <Link
           href="/mahasiswa"
           className="flex items-center gap-2 sm:gap-3 hover:opacity-90 transition-opacity group"
@@ -59,9 +59,9 @@ export default function Navbar() {
           </div>
         </Link>
 
-        {/* RIGHT */}
+
         <div className="flex items-center gap-3 text-xs sm:gap-6 sm:text-sm">
-          {/* PROFIL */}
+
           <Link
             href="/mahasiswa/profil"
             className={`flex items-center gap-1 transition-colors hover:underline ${pathname === "/mahasiswa/profil" ? "font-semibold underline" : ""
@@ -71,7 +71,7 @@ export default function Navbar() {
             <span className="hidden sm:inline">Mahasiswa</span>
           </Link>
 
-          {/* LOGOUT */}
+
           <button
             type="button"
             onClick={handleLogout}
@@ -83,7 +83,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* ================= MENU BAR (Always Visible) ================= */}
+
       <div className="flex overflow-x-auto whitespace-nowrap gap-4 bg-[#E9EBEE] px-4 py-2 text-xs text-black sm:gap-6 sm:px-6 sm:text-sm">
         {navLinks.map((link) => (
           <Link

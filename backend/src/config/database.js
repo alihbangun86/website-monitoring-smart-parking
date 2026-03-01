@@ -1,12 +1,12 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
-console.log(`📡 Connecting to DB at ${process.env.DB_HOST}:${process.env.DB_PORT || 3307}`);
+console.log(`Connecting to DB at ${process.env.DB_HOST}:${process.env.DB_PORT || 3307}`);
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  password: process.env.DB_PASS,
+  password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
@@ -16,7 +16,7 @@ const pool = mysql.createPool({
 const connectToDatabase = async () => {
   try {
     const conn = await pool.getConnection();
-    console.log("✅ Database connected successfully");
+    console.log("Database connected successfully");
 
     // Auto Create Table if missing
     await conn.execute(`
@@ -37,11 +37,11 @@ const connectToDatabase = async () => {
             ON DELETE CASCADE
       )
     `);
-    console.log("✅ Table 'rfid_registration_session' is ready");
+    console.log("Table 'rfid_registration_session' is ready");
 
     conn.release();
   } catch (err) {
-    console.error("❌ Database connection failed:", err.message);
+    console.error("Database connection failed:", err.message);
     process.exit(1);
   }
 };

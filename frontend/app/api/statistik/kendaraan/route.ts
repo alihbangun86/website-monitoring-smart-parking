@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 
-/**
- * GET /api/statistik/kendaraan?periode=harian|mingguan|bulanan
- * Proxy ke Backend Express (DATA ASLI DARI DATABASE)
- */
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const periode = searchParams.get("periode");
 
-    // ✅ VALIDASI
+
     if (!periode || !["harian", "mingguan", "bulanan"].includes(periode)) {
       return NextResponse.json(
         {
@@ -20,18 +17,19 @@ export async function GET(req: Request) {
       );
     }
 
-    // ✅ FETCH KE BACKEND EXPRESS (AMBIL DATA DB)
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/statistik/kendaraan?periode=${periode}`,
-      {
-        method: "GET",
-        cache: "no-store", // WAJIB: biar data selalu update
-      },
-    );
+
+
+    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/statistik/kendaraan`);
+    url.search = searchParams.toString();
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store",
+    });
 
     const data = await res.json();
 
-    // ✅ TERUSKAN RESPONSE APA ADANYA
+
     return NextResponse.json(data, {
       status: res.status,
     });

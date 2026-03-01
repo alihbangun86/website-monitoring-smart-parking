@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
-
-/* ================= DATA JURUSAN & PRODI ================= */
 
 const jurusanList = [
   "Jurusan Teknik Sipil",
@@ -47,10 +45,21 @@ const prodiByJurusan: Record<string, string[]> = {
   ],
 };
 
+interface FormState {
+  nama: string;
+  npm: string;
+  email: string;
+  jurusan: string;
+  prodi: string;
+  password: string;
+  plat_nomor: string;
+  [key: string]: string;
+}
+
 export default function DaftarPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     nama: "",
     npm: "",
     email: "",
@@ -66,40 +75,39 @@ export default function DaftarPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  /* ================= HANDLE CHANGE ================= */
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+    if (error) setError("");
 
-    setForm((prev) => ({
+    setForm((prev: FormState) => ({
       ...prev,
       [name]: value,
       ...(name === "jurusan" ? { prodi: "" } : {}),
     }));
   };
 
-  /* ================= HANDLE FILE ================= */
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
 
     if (file && file.size > 2 * 1024 * 1024) {
       setError("Ukuran file STNK maksimal 2MB. Tidak bisa menyimpan perubahan.");
-      e.target.value = ""; // Reset input
+      e.target.value = "";
       setStnk(null);
       setFileName("");
       return;
     }
 
-    setError(""); // Clear error if file is valid
+    setError("");
 
     setStnk(file);
     setFileName(file ? file.name : "");
   };
 
-  /* ================= HANDLE SUBMIT ================= */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +127,11 @@ export default function DaftarPage() {
       return;
     }
 
+    if (form.password.length < 8) {
+      setError("Kata sandi minimal harus 8 karakter");
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
       setError("Format email tidak valid");
@@ -135,7 +148,6 @@ export default function DaftarPage() {
 
       if (stnk) formData.append("stnk", stnk);
 
-      // 🔥 Pakai Next API, bukan langsung backend
       const res = await fetch("/api/auth/register", {
         method: "POST",
         body: formData,
@@ -161,7 +173,7 @@ export default function DaftarPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-200 px-4 py-6">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 sm:p-8 shadow-lg">
 
-        {/* LOGO */}
+
         <div className="mb-5 flex justify-center">
           <Image
             src="/logo-unila.png"
@@ -194,7 +206,6 @@ export default function DaftarPage() {
             options={jurusanList}
             placeholder="Pilih Jurusan"
           />
-
           <Select
             required
             name="prodi"
@@ -204,7 +215,6 @@ export default function DaftarPage() {
             placeholder="Pilih Program Studi"
             disabled={!form.jurusan}
           />
-
           <Input required name="plat_nomor" placeholder="Nomor Kendaraan (Contoh: BE 1234 ABC)" value={form.plat_nomor} onChange={handleChange} />
           <Input
             required
@@ -224,14 +234,13 @@ export default function DaftarPage() {
             }
           />
 
-          {/* FILE UPLOAD */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-gray-700">
               Upload Foto / Scan STNK <span className="text-red-500">*</span>
             </label>
 
             <input
-              required
+              required={!stnk}
               type="file"
               accept="image/*,.pdf"
               onChange={handleFileChange}
@@ -251,7 +260,7 @@ export default function DaftarPage() {
 
           <button
             type="submit"
-            disabled={loading || !!error}
+            disabled={loading}
             className="w-full rounded-full bg-blue-900 py-2 text-sm font-semibold text-white transition hover:bg-blue-800 active:scale-95 disabled:opacity-60"
           >
             {loading ? "Memproses..." : "Daftar"}
@@ -278,9 +287,17 @@ export default function DaftarPage() {
   );
 }
 
-/* ================= COMPONENT ================= */
+interface InputProps {
+  name: string;
+  type?: string;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  icon?: React.ReactNode;
+}
 
-function Input({ name, type = "text", placeholder, value, onChange, required, icon }: any) {
+function Input({ name, type = "text", placeholder, value, onChange, required, icon }: InputProps) {
   return (
     <div className="relative">
       <input
@@ -302,7 +319,17 @@ function Input({ name, type = "text", placeholder, value, onChange, required, ic
   );
 }
 
-function Select({ name, value, onChange, options, placeholder, disabled = false, required }: any) {
+interface SelectProps {
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+  required?: boolean;
+}
+
+function Select({ name, value, onChange, options, placeholder, disabled = false, required }: SelectProps) {
   return (
     <div className="relative">
       <select
@@ -321,7 +348,6 @@ function Select({ name, value, onChange, options, placeholder, disabled = false,
           </option>
         ))}
       </select>
-      {/* Custom Dropdown Arrow */}
       <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
         <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-/**
- * GET /api/statcard/parkir
- * Proxy ke Backend Express -> /api/statistik/parkir
- */
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,11 +11,11 @@ export async function GET(req: Request) {
 
     const res = await fetch(url, {
       method: "GET",
-      cache: "no-store", // data real-time
+      cache: "no-store",
     });
 
 
-    // ❌ Backend error
+
     if (!res.ok) {
       let message = "Backend error";
       try {
@@ -35,11 +32,11 @@ export async function GET(req: Request) {
       );
     }
 
-    // ✅ Sukses
+
     const data = await res.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("❌ StatCard API Error:", error);
+    console.error("StatCard API Error:", error);
 
     return NextResponse.json(
       {

@@ -13,18 +13,18 @@ export default function AdminSidebar() {
       ? "bg-[#1F3A93] text-white"
       : "text-gray-700 hover:bg-[#1F3A93] hover:text-white";
 
-  // ================= LOGOUT HANDLER =================
+
   const handleLogout = async () => {
     try {
       await fetch("/api/logout", {
         method: "POST",
       });
 
-      // 🔥 HAPUS DATA LOGIN ADMIN
+
       localStorage.removeItem("admin");
       localStorage.removeItem("admin_id");
 
-      // Redirect ke login
+
       router.push("/");
     } catch (error) {
       console.error("Logout gagal:", error);
@@ -32,9 +32,9 @@ export default function AdminSidebar() {
   };
 
   return (
-    // SIDEBAR HANYA MUNCUL DI DISPLAY BESAR (LG 1024px KE ATAS)
+
     <aside className="hidden md:block w-64 bg-[#E9EBEE] p-4 h-screen sticky top-0">
-      {/* ===== MENU ===== */}
+
       <nav className="space-y-2">
         <SidebarItem
           href="/admin"
@@ -65,10 +65,10 @@ export default function AdminSidebar() {
         />
       </nav>
 
-      {/* ===== DIVIDER ===== */}
+
       <hr className="my-6 border-gray-300" />
 
-      {/* ===== LOGOUT ===== */}
+
       <button
         type="button"
         onClick={handleLogout}
@@ -85,7 +85,7 @@ export default function AdminSidebar() {
   );
 }
 
-/* ================= ITEM ================= */
+
 function SidebarItem({
   href,
   icon,

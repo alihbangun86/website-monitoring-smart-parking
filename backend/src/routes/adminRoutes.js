@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authAdmin = require("../middleware/authAdmin");
 
 const {
   loginAdmin,
@@ -14,21 +15,14 @@ const {
   updateSlotParkir,
 } = require("../controllers/adminController");
 
-/**
- * ====================================================
- * AUTH ADMIN
- * Base: /api/admin
- * ====================================================
- */
+/* AUTH ADMIN
+ * Base: /api/admin */
 
 // LOGIN ADMIN
 router.post("/login", loginAdmin);
+router.use(authAdmin);
 
-/**
- * ====================================================
- * MANAJEMEN PENGGUNA
- * ====================================================
- */
+/*MANAJEMEN PENGGUNA*/
 
 // GET semua pengguna
 router.get("/pengguna", getDataPengguna);
@@ -42,20 +36,12 @@ router.delete("/pengguna/:npm", hapusPengguna);
 // UPDATE KUOTA (INDIVIDU / GLOBAL)
 router.put("/kuota", updateKuotaParkir);
 
-/**
- * ====================================================
- * RFID
- * ====================================================
- */
+/*RFID*/
 
 // GENERATE RFID untuk kendaraan
 router.post("/rfid/generate", generateRFID);
 
-/**
- * ====================================================
- * DASHBOARD
- * ====================================================
- */
+/*DASHBOARD */
 
 // SUMMARY DASHBOARD
 router.get("/dashboard/summary", dashboardSummary);
@@ -63,16 +49,11 @@ router.get("/dashboard/summary", dashboardSummary);
 // UPDATE SLOT PARKIR
 router.put("/slot", updateSlotParkir);
 
-/**
- * ====================================================
- * DATA PARKIR
- * ====================================================
- */
+/*DATA PARKIR */
 
 // LIST DATA PARKIR
 router.get("/parkir", getDataParkir);
 
 // EXPORT PDF
 router.get("/parkir/export/pdf", exportParkirPDF);
-
 module.exports = router;

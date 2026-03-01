@@ -18,7 +18,7 @@ export default function AdminNavbar() {
 
   useEffect(() => {
     const handleResize = () => {
-      // Auto close drawer if screen becomes large enough (desktop mode >= 768px)
+
       if (window.innerWidth >= 768) {
         setIsOpen(false);
       }
@@ -58,11 +58,11 @@ export default function AdminNavbar() {
     <nav className="sticky top-0 z-50 w-full border-b bg-[#1F3A93] text-white">
       <div className="flex items-center justify-between px-4 py-3 sm:px-6">
 
-        {/* LEFT SECTION */}
+
         <div className="flex items-center gap-3">
 
-          {/* HAMBURGER MENU BUTTON */}
-          {/* HANYA MUNCUL DI LAYAR SANGAT KECIL (MOBILE < 768px / md) */}
+
+
           <button
             className="block md:hidden p-1 rounded hover:bg-[#344FA0] transition"
             onClick={() => setIsOpen(!isOpen)}
@@ -88,7 +88,7 @@ export default function AdminNavbar() {
           </Link>
         </div>
 
-        {/* RIGHT SECTION - DESKTOP ONLY (sm+) */}
+
         <div className="hidden sm:flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
             <UserCog size={18} />
@@ -105,7 +105,7 @@ export default function AdminNavbar() {
         </div>
       </div>
 
-      {/* MOBILE DRAWER (md hidden) */}
+
       {isOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-white text-black shadow-lg border-b py-4 px-4 flex flex-col gap-2 animate-in slide-in-from-top-2">
 

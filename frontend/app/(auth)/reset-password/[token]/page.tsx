@@ -58,7 +58,6 @@ export default function ResetPasswordPage() {
         throw new Error(data.message || "Gagal reset Kata Sandi");
       }
 
-      // Hapus email dari session setelah sukses
       sessionStorage.removeItem("reset_email");
 
       router.push("/lupa-password/sukses");

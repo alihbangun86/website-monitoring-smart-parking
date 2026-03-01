@@ -1,10 +1,6 @@
 const db = require("../config/database");
 
-/**
- * =====================================
- * HELPER (WAJIB ADA)
- * =====================================
- */
+/*HELPER (WAJIB ADA) */
 const getStatistikByPeriode = async (periode, from, to, specificDate) => {
   let query = "";
   let params = [];
@@ -12,7 +8,7 @@ const getStatistikByPeriode = async (periode, from, to, specificDate) => {
   let displayLabels = [];
 
   if (periode === "harian") {
-    // 📅 Data Harian (00.00 - 23.00)
+    // Data Harian (00.00 - 23.00)
     query = `
       SELECT 
         HOUR(waktu_masuk) AS hour_val,
@@ -27,7 +23,7 @@ const getStatistikByPeriode = async (periode, from, to, specificDate) => {
   }
 
   if (periode === "mingguan") {
-    // 📅 MINGGU INI (Senin - Minggu)
+    // MINGGU INI (Senin - Minggu)
     if (from && to) {
       query = `
         SELECT 
@@ -54,7 +50,7 @@ const getStatistikByPeriode = async (periode, from, to, specificDate) => {
   }
 
   if (periode === "bulanan") {
-    // 📅 TAHUN INI (Januari - Desember)
+    // TAHUN INI (Januari - Desember)
     const targetYear = specificDate ? specificDate.split('-')[0] : new Date().getFullYear();
     query = `
       SELECT 
@@ -86,11 +82,7 @@ const getStatistikByPeriode = async (periode, from, to, specificDate) => {
   };
 };
 
-/**
- * =====================================
- * CONTROLLER
- * =====================================
- */
+/*CONTROLLER*/
 const getStatistikKendaraan = async (req, res) => {
   try {
     const { periode, from, to, date } = req.query;

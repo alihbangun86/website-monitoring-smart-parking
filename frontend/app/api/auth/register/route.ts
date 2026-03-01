@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const plat_nomor = formData.get("plat_nomor")?.toString();
     const stnk = formData.get("stnk") as File | null;
 
-    // ================= VALIDASI =================
+
     if (
       !nama ||
       !npm ||
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ================= FORWARD KE BACKEND =================
+
     const backendFormData = new FormData();
 
     backendFormData.append("nama", nama);

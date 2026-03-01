@@ -1,17 +1,13 @@
 const { query } = require("../config/database");
 
 
-/**
- * ======================================
- * PARKIR SCAN (MASUK / KELUAR OTOMATIS)
+/* PARKIR SCAN (MASUK / KELUAR OTOMATIS)
  * KUOTA PERSONAL
- * 1 PARKIR = MASUK + KELUAR = 1 KUOTA
- * ======================================
- */
+ * 1 PARKIR = MASUK + KELUAR = 1 KUOTA */
 const parkirScan = async (req, res) => {
   try {
     const { kode_rfid, gate } = req.body;
-    console.log(`🚗 SCAN RECEIVED: RFID=${kode_rfid}, Gate=${gate}`);
+    console.log(`SCAN RECEIVED: RFID=${kode_rfid}, Gate=${gate}`);
 
     if (!kode_rfid || !gate) {
       return res.json({
@@ -28,7 +24,7 @@ const parkirScan = async (req, res) => {
     }
 
     const uid = kode_rfid.trim().toUpperCase();
-    console.log("🔍 Cleaned RFID UID:", uid);
+    console.log("Cleaned RFID UID:", uid);
 
     /* ======================
        1️⃣ VALIDASI RFID
@@ -42,13 +38,13 @@ const parkirScan = async (req, res) => {
       LIMIT 1
     `;
 
-    console.log("🔍 Executing RFID validation query with UID:", uid);
+    console.log("Executing RFID validation query with UID:", uid);
     const rfid = await query(rfidQuery, [uid]);
 
-    console.log("🔍 RFID Query Result:", rfid);
+    console.log("RFID Query Result:", rfid);
 
     if (rfid.length === 0) {
-      console.error("❌ RFID not found in database");
+      console.error("RFID not found in database");
       return res.json({
         izin: false,
         message: "RFID tidak valid atau akun tidak aktif",
@@ -57,7 +53,7 @@ const parkirScan = async (req, res) => {
 
     // Check individual conditions
     const rfidData = rfid[0];
-    console.log("🔍 RFID Data:", {
+    console.log("RFID Data:", {
       id_kendaraan: rfidData.id_kendaraan,
       npm: rfidData.npm,
       status_rfid: rfidData.status_rfid,
@@ -65,7 +61,7 @@ const parkirScan = async (req, res) => {
     });
 
     if (!rfidData.status_rfid) {
-      console.error("❌ RFID is not active (status_rfid = false)");
+      console.error("RFID is not active (status_rfid = false)");
       return res.json({
         izin: false,
         message: "RFID tidak aktif",
@@ -73,7 +69,7 @@ const parkirScan = async (req, res) => {
     }
 
     if (rfidData.status_akun !== 1) {
-      console.error("❌ User account is not active (status_akun != 1)");
+      console.error("User account is not active (status_akun != 1)");
       return res.json({
         izin: false,
         message: "Akun pengguna tidak aktif",
@@ -82,9 +78,7 @@ const parkirScan = async (req, res) => {
 
     const { id_kendaraan, npm } = rfid[0];
 
-    /* ======================
-       2️⃣ CEK PARKIR AKTIF
-    ====================== */
+    /*CEK PARKIR AKTIF*/
     const logAktif = await query(
       `
       SELECT id_log
@@ -99,9 +93,7 @@ const parkirScan = async (req, res) => {
 
     const periode = new Date().toISOString().slice(0, 7);
 
-    /* ======================
-       MODE KELUAR
-    ====================== */
+    /*MODE KELUAR*/
     if (logAktif.length > 0) {
       if (gate !== "KELUAR") {
         return res.json({
@@ -121,7 +113,7 @@ const parkirScan = async (req, res) => {
         [id_kendaraan, periode]
       );
 
-      // Jika kuota bulan ini belum ada, cari kuota dasar dari admin (npm) dan buatkan record bulanan
+      // Jika kuota bulan ini belum ada, cari kuota dasar dari admin (npm) dan buat record bulanan
       if (!kuota) {
         const [baseKuota] = await query(
           "SELECT batas_parkir FROM kuota_parkir WHERE npm = ? AND periode_bulan IS NULL ORDER BY id_kuota DESC LIMIT 1",
@@ -150,15 +142,13 @@ const parkirScan = async (req, res) => {
         [logAktif[0].id_log]
       );
 
-      // Slot update removed because it is now dynamic (total_capacity - active_logs)
-
       // Emit update real-time
       const io = req.app.get("io");
       if (io) {
-        console.log("📡 Emitting parking_update (KELUAR):", { action: "KELUAR", id_kendaraan });
+        console.log("Emitting parking_update (KELUAR):", { action: "KELUAR", id_kendaraan });
         io.emit("parking_update", { action: "KELUAR", id_kendaraan });
       } else {
-        console.error("❌ Socket.io instance not found!");
+        console.error("Socket.io instance not found!");
       }
 
       return res.json({
@@ -169,9 +159,7 @@ const parkirScan = async (req, res) => {
       });
     }
 
-    /* ======================
-       MODE MASUK
-    ====================== */
+    /* MODE MASUK */
     if (gate !== "MASUK") {
       return res.json({
         izin: false,
@@ -179,7 +167,7 @@ const parkirScan = async (req, res) => {
       });
     }
 
-    // ===== CHECK GLOBAL SLOT AVAILABILITY (DYNAMIC) =====
+    //CHECK SLOT AVAILABILITY
     const [slotResults, terisiResults] = await Promise.all([
       query("SELECT COALESCE(SUM(jumlah), 0) AS total FROM slot_parkir"),
       query("SELECT COUNT(*) AS total FROM log_parkir WHERE status_parkir = 'MASUK'"),
@@ -246,9 +234,7 @@ const parkirScan = async (req, res) => {
       [id_kendaraan]
     );
 
-    // Slot update removed (now dynamic)
-
-    // ⬅️ HITUNG KUOTA (PENGGUNAAN DIMULAI SAAT MASUK)
+    //HITUNG KUOTA (PENGGUNAAN DIMULAI SAAT MASUK)
     await query(
       `
       UPDATE kuota_parkir
@@ -261,10 +247,10 @@ const parkirScan = async (req, res) => {
     // Emit update real-time
     const io = req.app.get("io");
     if (io) {
-      console.log("📡 Emitting parking_update (MASUK):", { action: "MASUK", id_kendaraan, npm });
+      console.log("Emitting parking_update (MASUK):", { action: "MASUK", id_kendaraan, npm });
       io.emit("parking_update", { action: "MASUK", id_kendaraan, npm });
     } else {
-      console.error("❌ Socket.io instance not found!");
+      console.error("Socket.io instance not found!");
     }
 
     return res.json({
